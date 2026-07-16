@@ -57,7 +57,9 @@ La regla de oro: **todo lo que deba comportarse igual en cliente y servidor vive
 | HUD completo + marcador TAB + killfeed + hitmarkers diferenciados | ✅ |
 | Menú de pausa (ESC), abandonar partida, pantalla de fin con marcador | ✅ |
 | PWA + ajustes persistentes (IndexedDB) | ✅ |
-| Cuentas (Supabase), progresión, inventario, pase de batalla | 🔜 ver roadmap |
+| Progresión: XP, niveles 1-100, estadísticas, perfil persistente | ✅ |
+| Pase de batalla (100 niveles, recompensas equipables) + armería funcional | ✅ |
+| Cuentas en la nube (Supabase), misiones, operadores, lobby 3D | 🔜 ver roadmap |
 
 ## Despliegue
 

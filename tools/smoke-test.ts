@@ -18,7 +18,7 @@ let sawExplosion = false;
 socket.on('connect', () => {
   socket.emit(
     'join',
-    { protocolVersion: 2, playerName: 'SmokeBot', method: 'matchmake' },
+    { protocolVersion: 2, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7 },
     (res: any) => {
       if (!res.ok) fail('join: ' + res.error);
       console.log('JOIN OK:', JSON.stringify(res));
@@ -65,6 +65,9 @@ setTimeout(() => {
   if (lastSnap.self.ammo >= 30 && !lastSnap.self.reloading && me.alive) fail('el arma no disparó');
   if (!sawGrenade) fail('no se vio ninguna granada en vuelo');
   if (!sawExplosion) fail('ninguna granada explotó');
+  if (me.weaponId !== 'smg-wisp') fail(`loadout de armería no aplicado (arma: ${me.weaponId})`);
+  if (me.level !== 7) fail(`nivel no aplicado (nivel: ${me.level})`);
+  console.log('arma equipada:', me.weaponId, '· nivel:', me.level);
   console.log('SMOKE TEST OK');
   process.exit(0);
 }, 4000);

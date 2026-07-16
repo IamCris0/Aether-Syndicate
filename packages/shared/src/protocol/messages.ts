@@ -15,6 +15,10 @@ export interface JoinRequest {
   password?: string;
   createOptions?: RoomOptions;
   preferredMode?: GameModeId;
+  /** Loadout elegido en la armería (el servidor lo valida contra WEAPONS). */
+  loadout?: string[];
+  /** Nivel de cuenta para mostrar en el marcador (verificado por Supabase en fase 2). */
+  level?: number;
 }
 
 export interface JoinResponse {

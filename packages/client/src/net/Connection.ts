@@ -14,6 +14,12 @@ import {
 
 type GameSocket = Socket<ServerToClient, ClientToServer>;
 
+/** Datos de perfil que acompañan al join (loadout de armería, nivel). */
+export interface JoinExtra {
+  loadout?: string[];
+  level?: number;
+}
+
 /**
  * Capa de red del cliente.
  * - Envía inputs en lotes con redundancia (los no confirmados se reenvían).
@@ -52,16 +58,16 @@ export class Connection {
     });
   }
 
-  matchmake(name: string, mode?: GameModeId): Promise<JoinResponse> {
-    return this.join({ playerName: name, method: 'matchmake', preferredMode: mode });
+  matchmake(name: string, extra?: JoinExtra, mode?: GameModeId): Promise<JoinResponse> {
+    return this.join({ playerName: name, method: 'matchmake', preferredMode: mode, ...extra });
   }
 
-  createRoom(name: string, options: Partial<RoomOptions>): Promise<JoinResponse> {
-    return this.join({ playerName: name, method: 'create', createOptions: options as RoomOptions });
+  createRoom(name: string, options: Partial<RoomOptions>, extra?: JoinExtra): Promise<JoinResponse> {
+    return this.join({ playerName: name, method: 'create', createOptions: options as RoomOptions, ...extra });
   }
 
-  joinByCode(name: string, code: string, password?: string): Promise<JoinResponse> {
-    return this.join({ playerName: name, method: 'code', roomCode: code, password });
+  joinByCode(name: string, code: string, password?: string, extra?: JoinExtra): Promise<JoinResponse> {
+    return this.join({ playerName: name, method: 'code', roomCode: code, password, ...extra });
   }
 
   listRooms(): Promise<RoomInfo[]> {

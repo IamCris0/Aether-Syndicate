@@ -29,7 +29,16 @@
   <section id="screen-lobby" class="screen">
     <header class="lobby-header">
       <h2 class="logo small">AETHER<span>SYNDICATE</span></h2>
-      <div id="lobby-player" class="lobby-player"></div>
+      <div class="profile-card" id="profile-card">
+        <div class="profile-name" id="profile-name"></div>
+        <div class="profile-title" id="profile-title"></div>
+        <div class="profile-level-row">
+          <span id="profile-level">NIVEL 1</span>
+          <div class="xp-bar"><i id="xp-fill"></i></div>
+          <span class="profile-xp-text" id="profile-xp-text"></span>
+        </div>
+        <div class="profile-stats" id="profile-stats"></div>
+      </div>
     </header>
     <nav class="lobby-nav">
       <button id="btn-play" class="btn primary big">BUSCAR PARTIDA</button>
@@ -37,9 +46,9 @@
       <button id="btn-join" class="btn big">UNIRSE POR CÓDIGO</button>
       <button id="btn-browse" class="btn big">EXPLORAR SALAS</button>
       <div class="lobby-nav-secondary">
-        <button class="btn ghost" disabled>ARMERÍA</button>
+        <button id="btn-armory" class="btn ghost">ARMERÍA</button>
         <button class="btn ghost" disabled>OPERADORES</button>
-        <button class="btn ghost" disabled>PASE DE BATALLA</button>
+        <button id="btn-battlepass" class="btn ghost">PASE DE BATALLA</button>
         <button id="btn-settings" class="btn ghost">AJUSTES</button>
       </div>
     </nav>
@@ -108,6 +117,29 @@
     </div>
   </dialog>
 
+  <!-- ====== MODAL: ARMERÍA ====== -->
+  <dialog id="modal-armory" class="modal wide">
+    <h3>Armería — arma primaria</h3>
+    <div id="armory-list" class="armory-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn primary" data-close>Listo</button>
+    </div>
+  </dialog>
+
+  <!-- ====== MODAL: PASE DE BATALLA ====== -->
+  <dialog id="modal-battlepass" class="modal wide">
+    <h3>Pase de batalla — Temporada 0 «Órbita Cero»</h3>
+    <div class="bp-header">
+      <span id="bp-progress-text"></span>
+      <div class="xp-bar"><i id="bp-progress-fill"></i></div>
+    </div>
+    <p class="bp-hint">Gana XP jugando. Clic en un nivel desbloqueado para reclamar y equipar su recompensa.</p>
+    <div id="bp-grid" class="bp-grid"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn primary" data-close>Cerrar</button>
+    </div>
+  </dialog>
+
   <!-- ====== MODAL: AJUSTES ====== -->
   <dialog id="modal-settings" class="modal">
     <h3>Ajustes</h3>
@@ -149,6 +181,8 @@
     </div>
 
     <div class="hud-perf"><span id="hud-fps">0 FPS</span> · <span id="hud-ping">0 ms</span></div>
+
+    <div class="xp-popups" id="xp-popups"></div>
 
     <div class="respawn-overlay hidden" id="respawn-overlay">
       <h2 id="respawn-title">HAS CAÍDO</h2>

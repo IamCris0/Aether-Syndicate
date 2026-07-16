@@ -19,13 +19,22 @@ Monorepo, simulación compartida determinista, gravedad dinámica por zonas, net
 - [ ] Chispas de impacto y decals (requiere object pooling)
 - [ ] Kill cam / pantalla "eliminado por X"
 
-## Fase 2 — Cuentas y persistencia
+## Fase 2 — Cuentas, progresión y metajuego — EN CURSO
 
-- [ ] Supabase Auth: Google primero; Discord/GitHub/Apple después (la pantalla de login ya reserva los botones)
-- [ ] Perfil: nivel, XP, estadísticas agregadas por arma/modo/mapa
-- [ ] Guardado de configuración en la nube (IndexedDB como caché offline + cola de sincronización)
+- [x] Arquitectura de auth desacoplada (`services/auth.ts`): interfaz `AuthProvider`,
+      invitado con identidad estable persistida; Google/Discord/… implementan la misma interfaz
+- [x] Perfil persistente en IndexedDB: nivel, XP, pase, loadout, estadísticas (K/D, victorias)
+- [x] Progresión: XP por baja/headshot/asistencia/victoria con popups en HUD,
+      curva de niveles (1-100) en `shared/data/progression.ts`
+- [x] Pase de batalla temporada 0 «Órbita Cero»: 100 niveles, recompensas reclamables
+      y equipables (retículas de color, títulos, emblemas), track premium preparado
+- [x] Armería funcional: elegir arma primaria; el servidor VALIDA y aplica el loadout
+- [x] Nivel visible en el marcador de partida
+- [ ] Supabase Auth (Google primero) + sincronización del perfil a la nube
+      (la estructura `PlayerProfile` ya es el contrato; IndexedDB queda como caché offline)
 - [ ] SQLite (better-sqlite3) en el servidor para partidas offline/LAN sin Supabase
 - [ ] Misiones diarias/semanales y logros (motor de condiciones data-driven)
+- [ ] XP autoritativa del servidor (anti-cheat de progresión; hoy la calcula el cliente)
 
 ## Fase 3 — Escala de red
 

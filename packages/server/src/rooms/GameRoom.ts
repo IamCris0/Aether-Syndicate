@@ -8,6 +8,7 @@ import {
   SERVER_TICK_RATE,
   SHIELD_REGEN_DELAY_S,
   SHIELD_REGEN_RATE,
+  WEAPONS,
   distance,
   getMap,
   getWeapon,
@@ -121,11 +122,14 @@ export class GameRoom {
     return this.playerCount < this.options.maxPlayers;
   }
 
-  addPlayer(socket: GameSocket, name: string): PlayerEntity {
+  addPlayer(socket: GameSocket, name: string, loadout?: string[], level?: number): PlayerEntity {
     const entity = new PlayerEntity(socket.id, name);
     entity.team = this.mode.def.teams ? this.mode.assignTeam(this.entities()) : 2;
+    entity.level = Math.max(1, Math.min(100, Math.floor(level ?? 1) || 1));
+    // El modo manda (Gun Game); si no, se aplica el loadout de la armería validado.
     const forced = this.mode.loadoutFor(entity);
     if (forced) entity.equipLoadout(forced);
+    else if (loadout) entity.equipLoadout(sanitizeLoadout(loadout));
     this.seats.set(entity.id, { entity, socket, bot: null });
     socket.join(this.code);
     socket.to(this.code).emit('playerJoined', entity.id, name);
@@ -429,6 +433,18 @@ export class GameRoom {
       });
     }
   }
+}
+
+/**
+ * Valida el loadout del cliente: primaria de slot 0 existente en WEAPONS;
+ * secundaria y cuerpo a cuerpo fijas en v0. Nunca se confía en el cliente.
+ */
+function sanitizeLoadout(requested: string[]): string[] {
+  const primary = requested.find((id) => {
+    const w = WEAPONS[id];
+    return w && w.slot === 0;
+  });
+  return [primary ?? 'ar-vanguard', 'pistol-nomad', 'knife-fang'];
 }
 
 export type { TeamId };

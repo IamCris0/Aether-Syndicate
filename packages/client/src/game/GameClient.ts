@@ -3,6 +3,11 @@ import {
   Buttons,
   INPUT_DT,
   PLAYER_EYE_HEIGHT,
+  XP_HEADSHOT_BONUS,
+  XP_MATCH_COMPLETE,
+  XP_MATCH_WIN,
+  XP_PER_ASSIST,
+  XP_PER_KILL,
   getGameMode,
   getMap,
   getWeapon,
@@ -81,7 +86,16 @@ export class GameClient {
 
   private matchEnded = false;
 
+  // Progresión: XP y estadísticas de la sesión, pendientes de "bancar".
+  private sessionXp = 0;
+  private sessionKills = 0;
+  private sessionDeaths = 0;
+  private sessionAssists = 0;
+  private lastAssists = 0;
+
   onLeave: (() => void) | null = null;
+  /** Se dispara al terminar la partida o al salir, con lo ganado en la sesión. */
+  onXpBanked: ((result: { xp: number; kills: number; deaths: number; assists: number; won: boolean; finished: boolean }) => void) | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -145,6 +159,7 @@ export class GameClient {
   }
 
   stop(): void {
+    this.bankSession(false, false); // XP parcial si se abandona a mitad
     this.running = false;
     this.hud.hide();
     this.input.release();
@@ -293,11 +308,20 @@ export class GameClient {
         this.hud.flashDamage();
         this.audio.playDamage();
       }
+
+      // Asistencias nuevas → XP (se detectan por diferencia entre snapshots).
+      if (this.me.assists > this.lastAssists) {
+        const gained = this.me.assists - this.lastAssists;
+        this.sessionAssists += gained;
+        this.awardXp(gained * XP_PER_ASSIST, 'ASISTENCIA');
+      }
+      this.lastAssists = this.me.assists;
     }
 
     // ---- Fin/reinicio de partida ----
     if (this.matchEnded && !snap.scores.matchOver) {
       this.matchEnded = false;
+      this.lastAssists = 0;
       this.hud.hideMatchEnd();
       this.hud.toggleScoreboard(false);
     }
@@ -410,17 +434,28 @@ export class GameClient {
         if (ev.killerId === selfId && ev.victimId !== selfId) {
           this.hud.flashHitmarker('kill');
           this.audio.playKill();
+          this.sessionKills++;
+          this.awardXp(XP_PER_KILL, 'BAJA');
+          if (ev.headshot) this.awardXp(XP_HEADSHOT_BONUS, 'TIRO A LA CABEZA');
         }
+        if (ev.victimId === selfId) this.sessionDeaths++;
         break;
       }
       case 'matchEnd': {
         let text = 'Empate';
+        let won = false;
         if (ev.winnerTeam !== null) {
-          text = ev.winnerTeam === (this.me?.team ?? -1) ? '¡VICTORIA DE TU EQUIPO!' : 'Derrota…';
+          won = ev.winnerTeam === (this.me?.team ?? -1);
+          text = won ? '¡VICTORIA DE TU EQUIPO!' : 'Derrota…';
         } else if (ev.winnerId) {
           const winner = snap.players.find((p) => p.id === ev.winnerId);
-          text = ev.winnerId === selfId ? '¡VICTORIA!' : `Ganador: ${winner?.name ?? '???'}`;
+          won = ev.winnerId === selfId;
+          text = won ? '¡VICTORIA!' : `Ganador: ${winner?.name ?? '???'}`;
         }
+        this.sessionXp += won ? XP_MATCH_WIN : XP_MATCH_COMPLETE;
+        text += `  ·  +${this.sessionXp} XP`;
+        this.bankSession(won, true);
+
         this.matchEnded = true;
         this.input.release();
         this.hud.setPause(false);
@@ -432,6 +467,28 @@ export class GameClient {
       default:
         break;
     }
+  }
+
+  private awardXp(amount: number, label: string): void {
+    this.sessionXp += amount;
+    this.hud.showXpPopup(`+${amount} XP · ${label}`);
+  }
+
+  /** Entrega la XP/estadísticas de la sesión al perfil (una sola vez). */
+  private bankSession(won: boolean, finished: boolean): void {
+    if (this.sessionXp === 0 && this.sessionKills === 0 && this.sessionDeaths === 0 && this.sessionAssists === 0) return;
+    this.onXpBanked?.({
+      xp: this.sessionXp,
+      kills: this.sessionKills,
+      deaths: this.sessionDeaths,
+      assists: this.sessionAssists,
+      won,
+      finished,
+    });
+    this.sessionXp = 0;
+    this.sessionKills = 0;
+    this.sessionDeaths = 0;
+    this.sessionAssists = 0;
   }
 
   private updateCamera(dt: number): void {

@@ -39,6 +39,7 @@ export class Hud {
   private hint = $('hud-hint');
   private grenades = $('hud-grenades');
   private pauseOverlay = $('pause-overlay');
+  private xpPopups = $('xp-popups');
 
   private vignetteTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -128,6 +129,16 @@ export class Hud {
 
   setPause(visible: boolean): void {
     this.pauseOverlay.classList.toggle('hidden', !visible);
+  }
+
+  /** Popup flotante de XP (+100 XP · BAJA). */
+  showXpPopup(text: string): void {
+    const el = document.createElement('div');
+    el.className = 'xp-popup';
+    el.textContent = text;
+    this.xpPopups.prepend(el);
+    while (this.xpPopups.children.length > 4) this.xpPopups.lastChild?.remove();
+    setTimeout(() => el.remove(), 1800);
   }
 
   flashDamage(): void {

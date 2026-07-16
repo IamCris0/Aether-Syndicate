@@ -1,10 +1,13 @@
 import './styles/main.css';
 import { GAME_MODES, MAPS, type GameModeId, type RoomOptions } from '@aether/shared';
-import { Connection } from './net/Connection.js';
+import { Connection, type JoinExtra } from './net/Connection.js';
 import { Input } from './core/Input.js';
 import { GameClient } from './game/GameClient.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { loadSettings, saveSettings, type PlayerSettings } from './persistence/storage.js';
+import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
+import { guestAuth } from './services/auth.js';
+import { applyCosmetics, openArmory, openBattlepass, renderLobbyCard } from './ui/meta.js';
 
 /**
  * Punto de entrada del cliente: gestiona las pantallas (login → lobby → juego)
@@ -20,6 +23,18 @@ const audio = new AudioManager();
 let connection: Connection | null = null;
 let game: GameClient | null = null;
 let settings: PlayerSettings;
+let profile: PlayerProfile;
+
+/** Datos del perfil que viajan con cada join (loadout de armería + nivel). */
+const joinExtra = (): JoinExtra => ({
+  loadout: [profile.loadoutPrimary, 'pistol-nomad', 'knife-fang'],
+  level: profile.level,
+});
+
+const persistProfile = (): void => {
+  void saveProfile(profile);
+  renderLobbyCard(profile, settings.name);
+};
 
 // ---------------------------------------------------------------- pantallas
 
@@ -33,14 +48,16 @@ function showScreen(id: ScreenId): void {
 // ---------------------------------------------------------------- login
 
 async function init(): Promise<void> {
-  settings = await loadSettings();
+  [settings, profile] = await Promise.all([loadSettings(), loadProfile()]);
+  applyCosmetics(profile);
   const nameInput = $('login-name') as HTMLInputElement;
   nameInput.value = settings.name;
   applySettingsToForm();
 
   $('btn-guest').addEventListener('click', async () => {
     audio.ensureContext();
-    settings.name = nameInput.value.trim() || `Recluta-${Math.floor(Math.random() * 9000 + 1000)}`;
+    const identity = await guestAuth.signIn(nameInput.value.trim());
+    settings.name = identity.displayName;
     await saveSettings(settings);
     enterLobby();
   });
@@ -51,7 +68,7 @@ async function init(): Promise<void> {
 
 function enterLobby(): void {
   showScreen('screen-lobby');
-  $('lobby-player').textContent = settings.name.toUpperCase();
+  renderLobbyCard(profile, settings.name);
   setStatus('');
   if (!connection) {
     connection = new Connection();
@@ -84,6 +101,10 @@ async function startGame(join: () => Promise<Awaited<ReturnType<Connection['matc
   closeAllModals();
 
   game = new GameClient(canvas, connection, input, res.mapId, res.mode, settings, audio);
+  game.onXpBanked = (result) => {
+    bankMatchResult(profile, result);
+    persistProfile();
+  };
   game.start();
   document.title = `AETHER SYNDICATE — ${res.roomName} [${res.roomCode}]`;
 }
@@ -114,12 +135,16 @@ $('btn-play-again').addEventListener('click', () => {
   game = null;
   conn.leaveRoom();
   showScreen('screen-lobby');
-  void startGame(() => conn.matchmake(settings.name));
+  void startGame(() => conn.matchmake(settings.name, joinExtra()));
 });
 
 // ---------------------------------------------------------------- botones lobby
 
-$('btn-play').addEventListener('click', () => startGame(() => connection!.matchmake(settings.name)));
+$('btn-play').addEventListener('click', () => startGame(() => connection!.matchmake(settings.name, joinExtra())));
+
+$('btn-armory').addEventListener('click', () => openArmory(profile, persistProfile));
+
+$('btn-battlepass').addEventListener('click', () => openBattlepass(profile, persistProfile));
 
 $('btn-create').addEventListener('click', () => {
   populateCreateForm();
@@ -176,7 +201,7 @@ $('form-create').addEventListener('submit', (e) => {
     bots: Number(data.get('bots')),
     gravityScale: Number(data.get('gravityScale')),
   };
-  void startGame(() => connection!.createRoom(settings.name, options));
+  void startGame(() => connection!.createRoom(settings.name, options, joinExtra()));
 });
 
 // ---------------------------------------------------------------- unirse por código
@@ -186,7 +211,7 @@ $('form-join').addEventListener('submit', (e) => {
   const data = new FormData(e.target as HTMLFormElement);
   const code = String(data.get('code') || '').toUpperCase().trim();
   const password = String(data.get('password') || '') || undefined;
-  if (code) void startGame(() => connection!.joinByCode(settings.name, code, password));
+  if (code) void startGame(() => connection!.joinByCode(settings.name, code, password, joinExtra()));
 });
 
 // ---------------------------------------------------------------- explorar salas
@@ -206,7 +231,7 @@ async function refreshRooms(): Promise<void> {
     row.className = 'room-row';
     row.innerHTML = `<div><strong>${room.name}</strong><div class="meta">${room.code} · ${room.mode.toUpperCase()} · ${room.mapId}</div></div><div class="meta">${room.players}/${room.maxPlayers}</div>`;
     row.addEventListener('click', () => {
-      void startGame(() => connection!.joinByCode(settings.name, room.code));
+      void startGame(() => connection!.joinByCode(settings.name, room.code, undefined, joinExtra()));
     });
     list.appendChild(row);
   }
