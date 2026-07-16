@@ -131,6 +131,18 @@ export class Hud {
     this.pauseOverlay.classList.toggle('hidden', !visible);
   }
 
+  private lastGap = -1;
+
+  /** Separación del crosshair en px (spread visualizado). */
+  setCrosshairGap(px: number): void {
+    const rounded = Math.round(px * 2) / 2;
+    if (rounded === this.lastGap) return;
+    this.lastGap = rounded;
+    this.crosshairEl.style.setProperty('--ch-gap', `${rounded}px`);
+  }
+
+  private crosshairEl = $('crosshair');
+
   /** Popup flotante de XP (+100 XP · BAJA). */
   showXpPopup(text: string): void {
     const el = document.createElement('div');

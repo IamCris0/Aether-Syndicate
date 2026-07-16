@@ -87,7 +87,14 @@ export class WeaponView {
     this.tracers.push({ line, life: 0.09 });
   }
 
-  update(dt: number, speed: number, onGround: boolean): void {
+  private swayX = 0;
+  private swayY = 0;
+
+  update(dt: number, speed: number, onGround: boolean, lookDX = 0, lookDY = 0): void {
+    // Sway: el arma "persigue" a la vista con retardo (peso percibido).
+    const k = Math.min(dt * 9, 1);
+    this.swayX += (Math.max(-0.05, Math.min(0.05, -lookDX * 1.4)) - this.swayX) * k;
+    this.swayY += (Math.max(-0.04, Math.min(0.04, lookDY * 1.1)) - this.swayY) * k;
     // Recuperación del retroceso.
     this.recoilKick = Math.max(0, this.recoilKick - dt * 0.6);
     this.muzzleFlash.intensity = Math.max(0, this.muzzleFlash.intensity - dt * 400);
@@ -105,14 +112,16 @@ export class WeaponView {
     const bobX = Math.sin(this.bobPhase) * 0.008 * adsK;
     const bobY = Math.abs(Math.cos(this.bobPhase)) * 0.006 * adsK;
 
+    const swayK = 1 - this.ads * 0.7; // apuntando, el arma va más pegada
     const hipX = 0.28, hipY = -0.26, hipZ = -0.45;
     const adsX = 0, adsY = -0.16, adsZ = -0.32;
     this.group.position.set(
-      hipX + (adsX - hipX) * this.ads + bobX,
-      hipY + (adsY - hipY) * this.ads + bobY + this.recoilKick * 0.4,
+      hipX + (adsX - hipX) * this.ads + bobX + this.swayX * swayK,
+      hipY + (adsY - hipY) * this.ads + bobY + this.recoilKick * 0.4 + this.swayY * swayK,
       hipZ + (adsZ - hipZ) * this.ads + this.recoilKick,
     );
-    this.group.rotation.x = this.recoilKick * 1.6;
+    this.group.rotation.x = this.recoilKick * 1.6 + this.swayY * 0.6;
+    this.group.rotation.z = this.swayX * 0.5;
 
     // Trazadoras.
     for (let i = this.tracers.length - 1; i >= 0; i--) {

@@ -61,9 +61,24 @@ export class World {
 }
 
 function createMaterials(): Record<BrushMaterial, THREE.Material> {
+  const floor = new THREE.MeshStandardMaterial({ color: 0x2a3346, roughness: 0.9, metalness: 0.4 });
+
+  // Textura de suelo generada (pipeline Higgsfield): si existe, sustituye al
+  // color plano; si falta, el material procedural sigue siendo el fallback.
+  new THREE.TextureLoader().load('/assets/textures/floor-deck-01.jpg', (tex) => {
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(10, 10);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    floor.map = tex;
+    floor.color.set(0xffffff);
+    floor.needsUpdate = true;
+  });
+
   return {
     hull: new THREE.MeshStandardMaterial({ color: 0x39465c, roughness: 0.75, metalness: 0.6 }),
-    floor: new THREE.MeshStandardMaterial({ color: 0x2a3346, roughness: 0.9, metalness: 0.4 }),
+    floor,
     glass: new THREE.MeshStandardMaterial({
       color: 0x7fd0ff, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.28,
     }),

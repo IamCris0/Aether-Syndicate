@@ -142,6 +142,14 @@ $('btn-play-again').addEventListener('click', () => {
 
 $('btn-play').addEventListener('click', () => startGame(() => connection!.matchmake(settings.name, joinExtra())));
 
+// Acceso rápido por modo (ritmo Arsenal: directo a Gun Game si quieres).
+for (const btn of document.querySelectorAll<HTMLButtonElement>('.quick-modes [data-mode]')) {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode as GameModeId;
+    void startGame(() => connection!.matchmake(settings.name, joinExtra(), mode));
+  });
+}
+
 $('btn-armory').addEventListener('click', () => openArmory(profile, persistProfile));
 
 $('btn-battlepass').addEventListener('click', () => openBattlepass(profile, persistProfile));

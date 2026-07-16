@@ -44,6 +44,18 @@ export class AudioManager {
     noise.connect(filter).connect(gain).connect(this.master);
     noise.start(t);
     noise.stop(t + 0.3);
+
+    // Capa grave ("thump"): el punch que hace sentir pesado el disparo.
+    const thump = this.ctx.createOscillator();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(heavy ? 85 : 110, t);
+    thump.frequency.exponentialRampToValueAtTime(38, t + 0.12);
+    const tGain = this.ctx.createGain();
+    tGain.gain.setValueAtTime(this.distanceGain(distance) * (heavy ? 0.55 : 0.35), t);
+    tGain.gain.exponentialRampToValueAtTime(0.001, t + (heavy ? 0.22 : 0.14));
+    thump.connect(tGain).connect(this.master);
+    thump.start(t);
+    thump.stop(t + 0.25);
   }
 
   playHit(): void {

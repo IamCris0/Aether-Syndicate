@@ -75,6 +75,19 @@ export class GameClient {
   private predGrenades = 0;
   private aiming = false;
 
+  // Recoil por patrón (estilo CoD): sube con la ráfaga y recupera al soltar.
+  private recoilShotIndex = 0;
+  private recoilAccum = 0;
+  private lastShotAt = 0;
+
+  // Cámara: roll al strafear, dip al aterrizar.
+  private viewRoll = 0;
+  private landDip = 0;
+  private airMinVelY = 0;
+  private prevOnGround = true;
+  private lastFrameYaw = 0;
+  private lastFramePitch = 0;
+
   // Granadas y explosiones.
   private grenadeMeshes = new Map<number, THREE.Mesh>();
   private grenadeGeo = new THREE.SphereGeometry(0.14, 10, 10);
@@ -127,6 +140,14 @@ export class GameClient {
 
     this.scene.background = new THREE.Color(map.skyColor);
     this.scene.fog = new THREE.FogExp2(map.fogColor, map.fogDensity);
+
+    // Skybox de nebulosa (asset generado); si falta, se conserva el color plano.
+    new THREE.TextureLoader().load('/assets/skyboxes/nebula-01.jpg', (tex) => {
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      this.scene.background = tex;
+      this.scene.backgroundIntensity = 0.55; // que no compita con el combate
+    });
 
     this.world = new World(map);
     this.weaponView = new WeaponView(this.camera);
@@ -189,8 +210,18 @@ export class GameClient {
     // ---- Interpolación de remotos y render ----
     this.avatars.interpolate(Date.now());
     this.updateExplosions(dt);
+    this.recoverRecoil(dt);
     this.updateCamera(dt);
-    this.weaponView.update(dt, Math.hypot(this.predicted.vel.x, this.predicted.vel.z), this.predicted.onGround);
+
+    // Sway del viewmodel según el movimiento de la vista de este frame.
+    const lookDX = this.input.yaw - this.lastFrameYaw;
+    const lookDY = this.input.pitch - this.lastFramePitch;
+    this.lastFrameYaw = this.input.yaw;
+    this.lastFramePitch = this.input.pitch;
+    this.weaponView.update(dt, Math.hypot(this.predicted.vel.x, this.predicted.vel.z), this.predicted.onGround, lookDX, lookDY);
+
+    // Crosshair dinámico: respira con el spread real (movimiento, aire, ráfaga, ADS).
+    this.hud.setCrosshairGap(this.computeCrosshairGap());
     this.renderer.render(this.scene, this.camera);
 
     // ---- FPS ----
@@ -251,10 +282,18 @@ export class GameClient {
       this.weaponView.onShotFired();
       this.audio.playShot(0, weapon.class === 'sniper' || weapon.class === 'shotgun');
 
-      // Retroceso: patrón por arma aplicado a la puntería real (reducido en ADS).
+      // Retroceso por PATRÓN: los primeros disparos suben más, el drift
+      // horizontal alterna de forma predecible (aprendible) y ADS lo reduce.
       const adsK = this.aiming ? 0.55 : 1;
-      this.input.pitch = Math.min(1.55, this.input.pitch + weapon.recoil.vertical * 2.2 * adsK);
-      this.input.yaw += (Math.random() * 2 - 1) * weapon.recoil.horizontal * 1.6 * adsK;
+      const climb = 1 + Math.min(this.recoilShotIndex, 8) * 0.14;
+      const vKick = weapon.recoil.vertical * 2.4 * climb * adsK;
+      const hKick = (Math.sin(this.recoilShotIndex * 1.7) + (Math.random() * 0.5 - 0.25)) *
+        weapon.recoil.horizontal * 1.8 * adsK;
+      this.input.pitch = Math.min(1.55, this.input.pitch + vKick);
+      this.input.yaw += hKick;
+      this.recoilAccum += vKick;
+      this.recoilShotIndex++;
+      this.lastShotAt = now;
     }
     this.predFireHeld = firePressed;
 
@@ -491,9 +530,48 @@ export class GameClient {
     this.sessionAssists = 0;
   }
 
+  /** La mira vuelve sola tras la ráfaga (recuperación parcial, aprendible). */
+  private recoverRecoil(dt: number): void {
+    const now = performance.now();
+    if (this.recoilAccum > 0.0001 && now - this.lastShotAt > 160) {
+      const weapon = getWeapon(this.lastSnapshot?.self?.weaponId ?? '');
+      const rate = 0.06 + weapon.recoil.recovery * 0.02;
+      const r = Math.min(this.recoilAccum, rate * dt * 10);
+      this.input.pitch -= r;
+      this.recoilAccum -= r;
+      if (this.recoilAccum <= 0.0001) {
+        this.recoilAccum = 0;
+        this.recoilShotIndex = 0;
+      }
+    } else if (now - this.lastShotAt > 450) {
+      this.recoilShotIndex = 0;
+    }
+  }
+
+  private computeCrosshairGap(): number {
+    const weapon = getWeapon(this.lastSnapshot?.self?.weaponId ?? '');
+    const spread = this.aiming ? weapon.spreadAds : weapon.spread;
+    const speed = Math.hypot(this.predicted.vel.x, this.predicted.vel.z);
+    let factor = spread * 550 + speed * 0.55 + this.recoilAccum * 320;
+    if (!this.predicted.onGround) factor += 6;
+    if (this.aiming) factor *= 0.45;
+    return Math.max(3, Math.min(3 + factor, 26));
+  }
+
   private updateCamera(dt: number): void {
     const eyeY = this.predicted.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT;
     this.camera.position.set(this.predicted.pos.x, this.predicted.pos.y + eyeY, this.predicted.pos.z);
+
+    // Dip de aterrizaje: la cámara se hunde según la velocidad de caída.
+    if (!this.predicted.onGround) {
+      this.airMinVelY = Math.min(this.airMinVelY, this.predicted.vel.y);
+    } else if (!this.prevOnGround && this.airMinVelY < -7) {
+      this.landDip = Math.min(0.34, -this.airMinVelY * 0.018);
+    }
+    if (this.predicted.onGround) this.airMinVelY = 0;
+    this.prevOnGround = this.predicted.onGround;
+    this.landDip = Math.max(0, this.landDip - dt * 1.6);
+    this.camera.position.y -= this.landDip * (this.landDip / 0.34);
 
     // Sacudida por explosiones cercanas.
     if (this.shake > 0.001) {
@@ -501,9 +579,17 @@ export class GameClient {
       this.camera.position.y += (Math.random() - 0.5) * this.shake * 0.3;
     }
 
+    // Roll sutil al strafear (velocidad lateral relativa a la vista).
+    const rightX = Math.cos(this.input.yaw);
+    const rightZ = -Math.sin(this.input.yaw);
+    const lateral = this.predicted.vel.x * rightX + this.predicted.vel.z * rightZ;
+    const targetRoll = Math.max(-0.022, Math.min(0.022, -lateral * 0.0032));
+    this.viewRoll += (targetRoll - this.viewRoll) * Math.min(dt * 8, 1);
+
     this.camera.rotation.set(0, 0, 0);
     this.camera.rotateY(this.input.yaw);
     this.camera.rotateX(this.input.pitch);
+    this.camera.rotateZ(this.viewRoll);
 
     // FOV: zoom al apuntar (francotirador con más aumento) + dinámico con velocidad.
     const weapon = getWeapon(this.lastSnapshot?.self?.weaponId ?? '');
