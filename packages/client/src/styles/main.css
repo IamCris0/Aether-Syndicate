@@ -113,6 +113,26 @@ input:focus, select:focus { border-color: var(--accent); }
   background:
     linear-gradient(110deg, rgba(4, 7, 15, 0.96) 30%, rgba(4, 7, 15, 0.35) 100%);
   padding: 28px 42px;
+  overflow: hidden;
+}
+
+/* Operador renderizado en el lobby (arte generado con Higgsfield). */
+.lobby-operator {
+  position: absolute;
+  right: 4vw;
+  bottom: 0;
+  height: 92vh;
+  max-width: 44vw;
+  object-fit: contain;
+  object-position: bottom;
+  z-index: -1;
+  pointer-events: none;
+  filter: drop-shadow(0 0 40px rgba(56, 224, 200, 0.18));
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 12%);
+  mask-image: linear-gradient(to top, transparent 0%, black 12%);
+}
+@media (max-width: 900px) {
+  .lobby-operator { opacity: 0.35; }
 }
 .lobby-header { display: flex; justify-content: space-between; align-items: flex-start; }
 
