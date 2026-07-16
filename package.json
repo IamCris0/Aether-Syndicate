@@ -1,0 +1,26 @@
+{
+  "name": "aether-syndicate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aether Syndicate — FPS multijugador competitivo para navegador con gravedad dinámica.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev -w @aether/server\" \"npm run dev -w @aether/client\"",
+    "dev:server": "npm run dev -w @aether/server",
+    "dev:client": "npm run dev -w @aether/client",
+    "build": "npm run build -w @aether/client && npm run build -w @aether/server",
+    "typecheck": "npm run typecheck -w @aether/shared && npm run typecheck -w @aether/server && npm run typecheck -w @aether/client",
+    "start": "npm run start -w @aether/server",
+    "test:smoke": "tsx tools/smoke-test.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

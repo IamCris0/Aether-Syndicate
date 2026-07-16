@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#04070f" />
+  <meta name="description" content="Aether Syndicate — FPS competitivo para navegador con gravedad dinámica." />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <title>AETHER SYNDICATE</title>
+</head>
+<body>
+  <!-- Render 3D -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ====== PANTALLA: LOGIN ====== -->
+  <section id="screen-login" class="screen active">
+    <div class="login-panel">
+      <h1 class="logo">AETHER<span>SYNDICATE</span></h1>
+      <p class="tagline">La gravedad es un arma.</p>
+      <input id="login-name" type="text" maxlength="20" placeholder="Nombre de operador" autocomplete="off" />
+      <button id="btn-guest" class="btn primary">ENTRAR COMO INVITADO</button>
+      <button id="btn-google" class="btn" disabled title="Requiere configurar Supabase Auth">GOOGLE — PRÓXIMAMENTE</button>
+      <p class="fine-print">Discord · Steam · Epic · GitHub · Apple — arquitectura preparada</p>
+    </div>
+  </section>
+
+  <!-- ====== PANTALLA: LOBBY ====== -->
+  <section id="screen-lobby" class="screen">
+    <header class="lobby-header">
+      <h2 class="logo small">AETHER<span>SYNDICATE</span></h2>
+      <div id="lobby-player" class="lobby-player"></div>
+    </header>
+    <nav class="lobby-nav">
+      <button id="btn-play" class="btn primary big">BUSCAR PARTIDA</button>
+      <button id="btn-create" class="btn big">CREAR SALA</button>
+      <button id="btn-join" class="btn big">UNIRSE POR CÓDIGO</button>
+      <button id="btn-browse" class="btn big">EXPLORAR SALAS</button>
+      <div class="lobby-nav-secondary">
+        <button class="btn ghost" disabled>ARMERÍA</button>
+        <button class="btn ghost" disabled>OPERADORES</button>
+        <button class="btn ghost" disabled>PASE DE BATALLA</button>
+        <button id="btn-settings" class="btn ghost">AJUSTES</button>
+      </div>
+    </nav>
+    <footer class="lobby-footer">
+      <span id="lobby-status"></span>
+      <span>v0.1.0 — pre-alpha</span>
+    </footer>
+  </section>
+
+  <!-- ====== MODAL: CREAR SALA ====== -->
+  <dialog id="modal-create" class="modal">
+    <h3>Crear sala</h3>
+    <form id="form-create" method="dialog">
+      <label>Nombre <input name="name" type="text" maxlength="40" placeholder="Mi sala" /></label>
+      <label>Contraseña (opcional) <input name="password" type="password" maxlength="30" /></label>
+      <label>Modo
+        <select name="mode" id="create-mode"></select>
+      </label>
+      <label>Mapa
+        <select name="mapId" id="create-map"></select>
+      </label>
+      <label>Jugadores máx.
+        <select name="maxPlayers">
+          <option>2</option><option>4</option><option>8</option>
+          <option selected>12</option><option>16</option><option>24</option>
+          <option>32</option><option>64</option>
+        </select>
+      </label>
+      <label>Límite de bajas <input name="scoreLimit" type="number" min="1" max="1000" value="30" /></label>
+      <label>Tiempo (min) <input name="timeLimit" type="number" min="1" max="60" value="10" /></label>
+      <label>Bots <input name="bots" type="number" min="0" max="32" value="0" /></label>
+      <label>Gravedad global
+        <select name="gravityScale">
+          <option value="1" selected>Normal</option>
+          <option value="0.35">Reducida</option>
+          <option value="0">Cero</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn primary">Crear y jugar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ====== MODAL: UNIRSE POR CÓDIGO ====== -->
+  <dialog id="modal-join" class="modal">
+    <h3>Unirse por código</h3>
+    <form id="form-join" method="dialog">
+      <label>Código de sala <input name="code" type="text" maxlength="6" placeholder="ABC123" style="text-transform:uppercase" /></label>
+      <label>Contraseña (si tiene) <input name="password" type="password" maxlength="30" /></label>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn primary">Unirse</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ====== MODAL: EXPLORAR SALAS ====== -->
+  <dialog id="modal-browse" class="modal">
+    <h3>Salas públicas</h3>
+    <div id="room-list" class="room-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Cerrar</button>
+      <button type="button" id="btn-refresh-rooms" class="btn">Actualizar</button>
+    </div>
+  </dialog>
+
+  <!-- ====== MODAL: AJUSTES ====== -->
+  <dialog id="modal-settings" class="modal">
+    <h3>Ajustes</h3>
+    <form id="form-settings" method="dialog">
+      <label>Sensibilidad <input name="sensitivity" type="range" min="0.2" max="5" step="0.1" value="1" /></label>
+      <label>FOV <input name="fov" type="range" min="60" max="120" step="1" value="90" /></label>
+      <label>Volumen <input name="volume" type="range" min="0" max="1" step="0.05" value="0.7" /></label>
+      <div class="modal-actions">
+        <button type="submit" class="btn primary" data-close>Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ====== HUD ====== -->
+  <div id="hud" class="hud hidden">
+    <div class="crosshair" id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
+    <div class="hitmarker" id="hitmarker"></div>
+    <div class="damage-vignette" id="damage-vignette"></div>
+
+    <div class="hud-top">
+      <div class="hud-scores" id="hud-scores"></div>
+      <div class="hud-timer" id="hud-timer">10:00</div>
+      <div class="hud-gravity" id="hud-gravity">GRAVEDAD NORMAL</div>
+    </div>
+
+    <div class="killfeed" id="killfeed"></div>
+
+    <div class="hud-bottom-left">
+      <div class="bar-wrap"><div class="bar shield" id="bar-shield"></div></div>
+      <div class="bar-wrap"><div class="bar health" id="bar-health"></div></div>
+      <div class="hud-stats" id="hud-kda">0 / 0 / 0</div>
+    </div>
+
+    <div class="hud-bottom-right">
+      <div class="hud-weapon" id="hud-weapon">VG-77 Vanguard</div>
+      <div class="hud-ammo"><span id="hud-ammo">30</span><small id="hud-reserve">/ 120</small></div>
+      <div class="hud-grenades" id="hud-grenades">◈ ×2</div>
+      <div class="hud-reload hidden" id="hud-reload">RECARGANDO…</div>
+    </div>
+
+    <div class="hud-perf"><span id="hud-fps">0 FPS</span> · <span id="hud-ping">0 ms</span></div>
+
+    <div class="respawn-overlay hidden" id="respawn-overlay">
+      <h2 id="respawn-title">HAS CAÍDO</h2>
+      <p id="respawn-timer"></p>
+    </div>
+
+    <div class="matchend-overlay hidden" id="matchend-overlay">
+      <h2 id="matchend-title">FIN DE LA PARTIDA</h2>
+      <p id="matchend-sub"></p>
+      <div class="matchend-actions">
+        <button id="btn-play-again" class="btn primary">JUGAR OTRA</button>
+        <button id="btn-back-lobby" class="btn">VOLVER AL LOBBY</button>
+      </div>
+    </div>
+
+    <div class="pause-overlay hidden" id="pause-overlay">
+      <div class="pause-panel">
+        <h2>PAUSA</h2>
+        <button id="btn-resume" class="btn primary big">REANUDAR</button>
+        <button id="btn-pause-settings" class="btn big">AJUSTES</button>
+        <button id="btn-abandon" class="btn big danger">ABANDONAR PARTIDA</button>
+        <p class="pause-hint">WASD mover · Mayús esprintar · Ctrl deslizar · Espacio saltar<br/>
+        Clic izq. disparar · Clic der. apuntar · G granada · R recargar · 1-3 armas · TAB marcador</p>
+      </div>
+    </div>
+
+    <table class="scoreboard hidden" id="scoreboard">
+      <thead>
+        <tr><th>OPERADOR</th><th>K</th><th>M</th><th>A</th><th>PING</th><th>NIVEL</th></tr>
+      </thead>
+      <tbody id="scoreboard-body"></tbody>
+    </table>
+
+    <div class="hud-hint" id="hud-hint">Clic para capturar el ratón · ESC para pausar</div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
