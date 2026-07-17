@@ -72,4 +72,4 @@ export const DEFAULT_ROOM_PLAYERS = 12;
 export const ROOM_CODE_LENGTH = 6;
 
 /** Versión de protocolo: rechaza clientes incompatibles. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;

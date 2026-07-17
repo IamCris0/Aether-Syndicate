@@ -7,7 +7,7 @@ import { AudioManager } from './audio/AudioManager.js';
 import { loadSettings, saveSettings, type PlayerSettings } from './persistence/storage.js';
 import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
-import { applyCosmetics, openArmory, openBattlepass, renderLobbyCard } from './ui/meta.js';
+import { applyCosmetics, openArmory, openBattlepass, openMissions, renderLobbyCard } from './ui/meta.js';
 import { LobbyScene } from './lobby/LobbyScene.js';
 
 /**
@@ -69,11 +69,17 @@ async function init(): Promise<void> {
 
 let lobbyScene: LobbyScene | null = null;
 
+/** Música ambiental del lobby (generada con Higgsfield sonilo). */
+const lobbyMusic = new Audio('/assets/audio/lobby-music.m4a');
+lobbyMusic.loop = true;
+
 function enterLobby(): void {
   showScreen('screen-lobby');
   renderLobbyCard(profile, settings.name);
   if (!lobbyScene) lobbyScene = new LobbyScene($('lobby-canvas') as unknown as HTMLCanvasElement);
   lobbyScene.start();
+  lobbyMusic.volume = Math.min(settings.volume * 0.35, 1);
+  void lobbyMusic.play().catch(() => { /* sin música si falta el asset */ });
   setStatus('');
   if (!connection) {
     connection = new Connection();
@@ -105,6 +111,7 @@ async function startGame(join: () => Promise<Awaited<ReturnType<Connection['matc
   showScreen(null);
   closeAllModals();
   lobbyScene?.stop();
+  lobbyMusic.pause();
 
   game = new GameClient(canvas, connection, input, res.mapId, res.mode, settings, audio, {
     skinId: profile.equippedSkin,
@@ -161,6 +168,8 @@ for (const btn of document.querySelectorAll<HTMLButtonElement>('.quick-modes [da
 $('btn-armory').addEventListener('click', () => openArmory(profile, persistProfile));
 
 $('btn-battlepass').addEventListener('click', () => openBattlepass(profile, persistProfile));
+
+$('btn-missions').addEventListener('click', () => openMissions(profile, persistProfile));
 
 $('btn-create').addEventListener('click', () => {
   populateCreateForm();

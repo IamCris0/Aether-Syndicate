@@ -1,4 +1,12 @@
-import { applyXp, bpTierFromXp } from '@aether/shared';
+import {
+  applyXp,
+  bpTierFromXp,
+  dailyKey,
+  dailyMissions,
+  weeklyKey,
+  weeklyMissions,
+  type MissionDef,
+} from '@aether/shared';
 import { kvGet, kvSet } from './storage.js';
 
 /**
@@ -31,6 +39,12 @@ export interface PlayerProfile {
     wins: number;
     matches: number;
   };
+  /** Misiones: progreso por id, reclamadas, y claves de periodo para el reset. */
+  missionProgress: Record<string, number>;
+  missionClaimed: string[];
+  dailyPeriod: string;
+  weeklyPeriod: string;
+  achievementsClaimed: string[];
 }
 
 export const DEFAULT_PROFILE: PlayerProfile = {
@@ -45,6 +59,11 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   equippedSkin: null,
   loadoutPrimary: 'ar-vanguard',
   stats: { kills: 0, deaths: 0, assists: 0, wins: 0, matches: 0 },
+  missionProgress: {},
+  missionClaimed: [],
+  dailyPeriod: '',
+  weeklyPeriod: '',
+  achievementsClaimed: [],
 };
 
 export async function loadProfile(): Promise<PlayerProfile> {
@@ -74,6 +93,8 @@ export interface MatchResult {
   kills: number;
   deaths: number;
   assists: number;
+  headshots: number;
+  grenadeKills: number;
   won: boolean;
   finished: boolean;
 }
@@ -90,5 +111,49 @@ export function bankMatchResult(profile: PlayerProfile, result: MatchResult): { 
   profile.stats.assists += result.assists;
   if (result.finished) profile.stats.matches += 1;
   if (result.won) profile.stats.wins += 1;
+  applyMissionResult(profile, result);
   return { levelsGained: applied.levelsGained, tiersGained: bpTierFromXp(profile.bpXp) - prevTier };
+}
+
+/** Resetea el progreso de misiones si cambió el día/semana. */
+export function ensureMissionPeriods(profile: PlayerProfile): void {
+  const today = dailyKey();
+  const thisWeek = weeklyKey();
+  if (profile.dailyPeriod !== today) {
+    profile.dailyPeriod = today;
+    for (const id of Object.keys(profile.missionProgress)) {
+      if (id.startsWith('d-')) delete profile.missionProgress[id];
+    }
+    profile.missionClaimed = profile.missionClaimed.filter((id) => !id.startsWith('d-'));
+  }
+  if (profile.weeklyPeriod !== thisWeek) {
+    profile.weeklyPeriod = thisWeek;
+    for (const id of Object.keys(profile.missionProgress)) {
+      if (id.startsWith('w-')) delete profile.missionProgress[id];
+    }
+    profile.missionClaimed = profile.missionClaimed.filter((id) => !id.startsWith('w-'));
+  }
+}
+
+/** Suma el resultado de una partida al progreso de las misiones activas. */
+function applyMissionResult(profile: PlayerProfile, result: MatchResult): void {
+  ensureMissionPeriods(profile);
+  const active: MissionDef[] = [...dailyMissions(), ...weeklyMissions()];
+  const gains: Record<string, number> = {
+    kills: result.kills,
+    assists: result.assists,
+    headshots: result.headshots,
+    grenadeKills: result.grenadeKills,
+    wins: result.won ? 1 : 0,
+    matches: result.finished ? 1 : 0,
+  };
+  for (const mission of active) {
+    if (profile.missionClaimed.includes(mission.id)) continue;
+    const gain = gains[mission.stat] ?? 0;
+    if (gain <= 0) continue;
+    profile.missionProgress[mission.id] = Math.min(
+      (profile.missionProgress[mission.id] ?? 0) + gain,
+      mission.target,
+    );
+  }
 }

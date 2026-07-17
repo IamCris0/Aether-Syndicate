@@ -39,6 +39,8 @@ export interface ClientToServer {
   listRooms: (cb: (rooms: RoomInfo[]) => void) => void;
   leaveRoom: () => void;
   chat: (text: string) => void;
+  /** Voto de mapa durante la pantalla de fin de partida. */
+  voteMap: (mapId: string) => void;
 }
 
 export interface ServerToClient {

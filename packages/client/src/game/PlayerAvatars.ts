@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { INTERPOLATION_DELAY_MS, gravityKindAt, type GravityZone, type PlayerSnapshot } from '@aether/shared';
+import { buildOperator } from './OperatorModel.js';
 
 /**
  * Renderiza y anima a los jugadores remotos.
@@ -17,8 +18,7 @@ interface Sample {
 
 interface Avatar {
   group: THREE.Group;
-  body: THREE.Mesh;
-  head: THREE.Mesh;
+  rig: THREE.Group;
   buffer: Sample[];
 }
 
@@ -87,9 +87,7 @@ export class PlayerAvatars {
         a.z + (b.z - a.z) * t,
       );
       avatar.group.rotation.y = lerpAngle(a.yaw, b.yaw, t);
-      const crouch = b.crouching ? 0.7 : 1;
-      avatar.body.scale.y = crouch;
-      avatar.head.position.y = b.crouching ? 0.55 : 0.95;
+      avatar.rig.scale.y = b.crouching ? 0.72 : 1;
 
       // Gravedad invertida: el avatar camina boca abajo por el techo.
       const inverted = gravityKindAt(this.gravityZones, avatar.group.position) === 'inverted';
@@ -105,27 +103,12 @@ export class PlayerAvatars {
 
   private createAvatar(color: number): Avatar {
     const group = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ color: 0x2c3a52, roughness: 0.6, metalness: 0.5 });
-    const accent = new THREE.MeshStandardMaterial({
-      color, roughness: 0.4, metalness: 0.3, emissive: color, emissiveIntensity: 0.5,
-    });
-
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 0.45), mat);
-    body.position.y = 0.05;
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.42), accent);
-    head.position.y = 0.95;
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), accent);
-    visor.position.set(0, 0.98, -0.2);
-
-    // Arma en las manos (silueta genérica apuntando hacia delante).
-    const gunMat = new THREE.MeshStandardMaterial({ color: 0x11161f, roughness: 0.5, metalness: 0.8 });
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.55), gunMat);
-    gun.position.set(0.24, 0.42, -0.35);
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.2), gunMat);
-    barrel.position.set(0.24, 0.45, -0.7);
-
-    group.add(body, head, visor, gun, barrel);
-    return { group, body, head, buffer: [] };
+    // Rig completo del operador con el acento del equipo; el origen del rig
+    // está en los pies y la posición replicada es el CENTRO del jugador.
+    const rig = buildOperator(color);
+    rig.position.y = -0.92;
+    group.add(rig);
+    return { group, rig, buffer: [] };
   }
 }
 

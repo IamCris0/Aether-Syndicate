@@ -9,7 +9,7 @@
 | **5 — Mapas 2.0** | Orbital One v2 ✅; texturas ✅; Refinería Kessler ✅ con **gravedad invertida jugable** (Canal Invertido: cámara rotada, controles adaptados, avatares boca abajo) ✅ | ✅ |
 | **6 — Operadores** | Sistema data-driven equipable (solo cosmético), modelos in-game por equipo, operador rojo | ⬜ |
 | **7 — Menús/UX 2.0** | Rediseño visual completo, transiciones, sonidos de UI, onboarding | ⬜ |
-| **8 — Retención** | Misiones diarias/semanales, logros, killcam, votación de mapa | ⬜ |
+| **8 — Retención** | Misiones diarias/semanales ✅ (rotación por fecha), logros ✅, death cam + "eliminado por" ✅, votación de mapa con cambio en caliente ✅ | ✅ |
 
 Las fases históricas (0-2) y el detalle original se conservan abajo.
 

@@ -96,6 +96,11 @@ export class GameClient {
   private prevReloading = false;
   private prevWeaponId = '';
 
+  // Death cam: mirar al asesino mientras esperas el respawn.
+  private killerId: string | null = null;
+  private sessionHeadshots = 0;
+  private sessionGrenadeKills = 0;
+
   // Granadas y explosiones.
   private grenadeMeshes = new Map<number, THREE.Mesh>();
   private grenadeGeo = new THREE.SphereGeometry(0.14, 10, 10);
@@ -116,7 +121,7 @@ export class GameClient {
 
   onLeave: (() => void) | null = null;
   /** Se dispara al terminar la partida o al salir, con lo ganado en la sesión. */
-  onXpBanked: ((result: { xp: number; kills: number; deaths: number; assists: number; won: boolean; finished: boolean }) => void) | null = null;
+  onXpBanked: ((result: { xp: number; kills: number; deaths: number; assists: number; headshots: number; grenadeKills: number; won: boolean; finished: boolean }) => void) | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -353,6 +358,7 @@ export class GameClient {
       if (!wasAlive && this.me.alive) {
         this.input.yaw = this.me.yaw;
         this.input.pitch = 0;
+        this.killerId = null;
         this.hud.hideMatchEnd();
       }
 
@@ -408,6 +414,19 @@ export class GameClient {
     for (const ev of snap.events) {
       this.handleEvent(ev, snap, selfId);
     }
+  }
+
+  /** Cambio de mapa en caliente tras la votación: reconstruye el mundo. */
+  private rebuildWorld(mapId: string): void {
+    const map = getMap(mapId);
+    this.scene.remove(this.world.group);
+    this.world = new World(map);
+    this.scene.add(this.world.group);
+    this.moveCtx.brushes = map.brushes;
+    this.moveCtx.gravityZones = map.gravityZones;
+    this.avatars.gravityZones = map.gravityZones;
+    this.scene.background = new THREE.Color(map.skyColor);
+    this.scene.fog = new THREE.FogExp2(map.fogColor, map.fogDensity);
   }
 
   private syncGrenades(snap: Snapshot): void {
@@ -509,9 +528,41 @@ export class GameClient {
           this.audio.playKill();
           this.sessionKills++;
           this.awardXp(XP_PER_KILL, 'BAJA');
-          if (ev.headshot) this.awardXp(XP_HEADSHOT_BONUS, 'TIRO A LA CABEZA');
+          if (ev.headshot) {
+            this.sessionHeadshots++;
+            this.awardXp(XP_HEADSHOT_BONUS, 'TIRO A LA CABEZA');
+          }
+          if (ev.weaponId === 'grenade-frag') this.sessionGrenadeKills++;
         }
-        if (ev.victimId === selfId) this.sessionDeaths++;
+        if (ev.victimId === selfId) {
+          this.sessionDeaths++;
+          // "Eliminado por X" + death cam hacia el asesino.
+          this.killerId = ev.killerId !== selfId ? ev.killerId : null;
+          const killer = snap.players.find((p) => p.id === ev.killerId);
+          this.hud.setDeathInfo(
+            killer && ev.killerId !== selfId ? killer.name : null,
+            getWeapon(ev.weaponId).name,
+            ev.headshot,
+          );
+        }
+        break;
+      }
+      case 'voteStart': {
+        this.hud.showMapVote(
+          ev.options.map((id) => ({ id, name: getMap(id).name })),
+          (mapId) => this.connection.voteMap(mapId),
+        );
+        break;
+      }
+      case 'mapChange': {
+        this.rebuildWorld(ev.mapId);
+        break;
+      }
+      case 'gbounce': {
+        const dist = Math.hypot(
+          ev.pos.x - this.predicted.pos.x, ev.pos.y - this.predicted.pos.y, ev.pos.z - this.predicted.pos.z,
+        );
+        this.audio.playBounce(dist);
         break;
       }
       case 'matchEnd': {
@@ -555,6 +606,8 @@ export class GameClient {
       kills: this.sessionKills,
       deaths: this.sessionDeaths,
       assists: this.sessionAssists,
+      headshots: this.sessionHeadshots,
+      grenadeKills: this.sessionGrenadeKills,
       won,
       finished,
     });
@@ -562,6 +615,8 @@ export class GameClient {
     this.sessionKills = 0;
     this.sessionDeaths = 0;
     this.sessionAssists = 0;
+    this.sessionHeadshots = 0;
+    this.sessionGrenadeKills = 0;
   }
 
   /** La mira vuelve sola tras la ráfaga (recuperación parcial, aprendible). */
@@ -595,9 +650,11 @@ export class GameClient {
   private updateCamera(dt: number): void {
     // Gravedad invertida: la cámara rueda 180º, el ojo pasa a estar "debajo"
     // del centro y el ratón se invierte para que la pantalla siga siendo natural.
-    const inverted = gravityKindAt(this.moveCtx.gravityZones, this.predicted.pos) === 'inverted';
+    const gravityKind = gravityKindAt(this.moveCtx.gravityZones, this.predicted.pos);
+    const inverted = gravityKind === 'inverted';
     this.gravityFlip += ((inverted ? 1 : 0) - this.gravityFlip) * Math.min(dt * 5, 1);
     this.input.invertLook = this.gravityFlip > 0.5;
+    this.audio.setZeroG(gravityKind === 'zero' && this.alive);
 
     const eyeSign = 1 - 2 * this.gravityFlip;
     const eyeY = (this.predicted.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT) * eyeSign;
@@ -627,6 +684,16 @@ export class GameClient {
     const lateral = this.predicted.vel.x * rightX + this.predicted.vel.z * rightZ;
     const targetRoll = Math.max(-0.022, Math.min(0.022, -lateral * 0.0032));
     this.viewRoll += (targetRoll - this.viewRoll) * Math.min(dt * 8, 1);
+
+    // Death cam: mientras esperas el respawn, la cámara sigue a tu asesino.
+    if (!this.alive && this.killerId) {
+      const killerPos = this.avatars.positionOf(this.killerId);
+      if (killerPos) {
+        this.camera.position.y += 0.6;
+        this.camera.lookAt(killerPos);
+        return;
+      }
+    }
 
     this.camera.rotation.set(0, 0, 0);
     this.camera.rotateY(this.input.yaw);

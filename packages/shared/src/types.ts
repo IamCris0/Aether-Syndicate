@@ -70,6 +70,9 @@ export type GameEvent =
   | { type: 'kill'; killerId: string; victimId: string; weaponId: string; headshot: boolean }
   | { type: 'damage'; targetId: string; attackerId: string; amount: number; headshot: boolean }
   | { type: 'explosion'; pos: Vec3; radius: number }
+  | { type: 'gbounce'; pos: Vec3 }
+  | { type: 'voteStart'; options: string[] }
+  | { type: 'mapChange'; mapId: string }
   | { type: 'respawn'; playerId: string; pos: Vec3 }
   | { type: 'matchEnd'; winnerId: string | null; winnerTeam: TeamId | null };
 

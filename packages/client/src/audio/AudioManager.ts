@@ -30,6 +30,8 @@ const SAMPLES: Record<string, string> = {
   reload: '/assets/audio/reload.mp3',
   footstep: '/assets/audio/footstep.mp3',
   explosion: '/assets/audio/explosion.mp3',
+  gbounce: '/assets/audio/grenade-bounce.mp3',
+  zerog: '/assets/audio/zerog-ambient.mp3',
 };
 
 /** Clase → sample (las clases sin sample propio reutilizan otro con pitch). */
@@ -170,6 +172,48 @@ export class AudioManager {
 
   playThrow(): void {
     this.blip(340, 0.06, 0.15);
+  }
+
+  playBounce(distance = 0): void {
+    if (this.playSample('gbounce', this.distanceGain(distance) * 0.3, 0.92 + Math.random() * 0.16)) return;
+    this.blip(900 + Math.random() * 300, 0.05, this.distanceGain(distance) * 0.2);
+  }
+
+  // ---------------------------------------------- ambiente gravedad cero
+
+  private zeroGain: GainNode | null = null;
+  private zeroSrc: AudioBufferSourceNode | OscillatorNode | null = null;
+
+  /** Activa/desactiva el zumbido ambiental de gravedad cero (con fade). */
+  setZeroG(active: boolean): void {
+    if (!this.ctx || !this.master) return;
+    if (active && !this.zeroSrc) {
+      this.zeroGain = this.ctx.createGain();
+      this.zeroGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+      this.zeroGain.gain.exponentialRampToValueAtTime(0.16, this.ctx.currentTime + 0.8);
+      const buffer = this.buffers.get('zerog');
+      if (buffer) {
+        const src = this.ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = true;
+        src.connect(this.zeroGain).connect(this.master);
+        src.start();
+        this.zeroSrc = src;
+      } else {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 52;
+        osc.connect(this.zeroGain).connect(this.master);
+        osc.start();
+        this.zeroSrc = osc;
+      }
+    } else if (!active && this.zeroSrc && this.zeroGain) {
+      const src = this.zeroSrc;
+      this.zeroGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.5);
+      setTimeout(() => src.stop(), 600);
+      this.zeroSrc = null;
+      this.zeroGain = null;
+    }
   }
 
   playExplosion(distance = 0): void {

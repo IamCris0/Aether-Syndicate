@@ -3,6 +3,7 @@ import {
   Buttons,
   GRENADE_COOLDOWN_S,
   INPUT_RATE,
+  MAPS,
   PLAYER_MAX_SHIELD,
   RESPAWN_DELAY_S,
   SERVER_TICK_RATE,
@@ -54,7 +55,8 @@ interface Seat {
 export class GameRoom {
   readonly code: string;
   readonly options: RoomOptions;
-  readonly map: MapDef;
+  /** Mapa actual (puede cambiar entre partidas por votación). */
+  map: MapDef;
 
   private readonly io: Server<ClientToServer, ServerToClient>;
   private readonly mode: GameModeLogic;
@@ -73,6 +75,9 @@ export class GameRoom {
   private interval: ReturnType<typeof setInterval> | null = null;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private botCounter = 0;
+  /** Votación de mapa: opciones ofrecidas y voto por jugador. */
+  private voteOptions: string[] = [];
+  private mapVotes = new Map<string, string>();
 
   onEmpty: (() => void) | null = null;
 
@@ -357,9 +362,45 @@ export class GameRoom {
     if (this.restartAt > 0) return;
     this.restartAt = now + MATCH_RESTART_DELAY_MS;
     this.events.push({ type: 'matchEnd', winnerId: this.match.winnerId, winnerTeam: this.match.winnerTeam });
+
+    // Votación de mapa: el actual contra otro aleatorio del registro.
+    const others = Object.keys(MAPS).filter((id) => id !== this.map.id);
+    const rival = others[Math.floor(this.rng() * others.length)];
+    this.voteOptions = rival ? [this.map.id, rival] : [this.map.id];
+    this.mapVotes.clear();
+    this.events.push({ type: 'voteStart', options: [...this.voteOptions] });
+  }
+
+  castVote(playerId: string, mapId: string): void {
+    if (!this.seats.has(playerId) || !this.voteOptions.includes(mapId) || this.restartAt === 0) return;
+    this.mapVotes.set(playerId, mapId);
   }
 
   private restartMatch(now: number): void {
+    // Resolver la votación de mapa (empate ⇒ se queda el actual).
+    if (this.voteOptions.length > 1) {
+      const tally = new Map<string, number>();
+      for (const vote of this.mapVotes.values()) tally.set(vote, (tally.get(vote) ?? 0) + 1);
+      let winner = this.map.id;
+      let best = tally.get(this.map.id) ?? 0;
+      for (const [mapId, count] of tally) {
+        if (count > best) {
+          best = count;
+          winner = mapId;
+        }
+      }
+      if (winner !== this.map.id) {
+        this.map = getMap(winner);
+        this.options.mapId = winner;
+        this.moveCtx.brushes = this.map.brushes;
+        this.moveCtx.gravityZones = this.map.gravityZones;
+        this.events.push({ type: 'mapChange', mapId: winner });
+        console.log(`[rooms] ${this.code}: votación → cambio a ${winner}`);
+      }
+      this.voteOptions = [];
+      this.mapVotes.clear();
+    }
+
     this.match = { scoreTeam0: 0, scoreTeam1: 0, over: false, winnerId: null, winnerTeam: null };
     this.restartAt = 0;
     this.matchEndsAt = now + this.options.timeLimitS * 1000;

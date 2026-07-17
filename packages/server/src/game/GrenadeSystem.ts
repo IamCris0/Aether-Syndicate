@@ -78,6 +78,8 @@ export class GrenadeSystem {
       const delta = vec3(g.vel.x * DT, g.vel.y * DT, g.vel.z * DT);
       const res = moveAABB(g.pos, HALF, delta, this.ctx.brushes);
       if (res.hitY) {
+        // Rebote audible solo si llega con velocidad apreciable.
+        if (Math.abs(g.vel.y) > 3) events.push({ type: 'gbounce', pos: clone(g.pos) });
         g.vel.y = -g.vel.y * GRENADE_RESTITUTION;
         g.vel.x *= 0.8;
         g.vel.z *= 0.8;

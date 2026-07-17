@@ -38,6 +38,9 @@ const VIEW_CONFIGS: Record<string, Partial<ViewCfg>> = {
   'lmg-bulwark': { bodyL: 0.56, bodyH: 0.17, bodyW: 0.1, barrelL: 0.46, barrelR: 0.026, mag: 'drum' },
   'pistol-nomad': { bodyL: 0.22, bodyH: 0.1, bodyW: 0.06, barrelL: 0.1, stock: false, mag: 'none', sight: 'iron' },
   'knife-fang': { blade: true, mag: 'none', stock: false, sight: 'none', barrelL: 0, grip: false },
+  'ar-havoc': { bodyL: 0.52, bodyH: 0.15, barrelL: 0.28, barrelR: 0.024, sight: 'holo' },
+  'smg-tempest': { bodyL: 0.3, bodyH: 0.1, barrelL: 0.2, stock: false, sight: 'iron' },
+  'dmr-judicator': { bodyL: 0.58, barrelL: 0.44, barrelR: 0.018, sight: 'holo' },
 };
 
 /** Skins/camuflajes desbloqueables en el pase de batalla. */
@@ -236,8 +239,9 @@ export class WeaponView {
   }
 }
 
-/** Construye el modelo 3D de un arma (con manos del operador) según su ficha. */
-function buildWeaponModel(def: WeaponDef, skin: WeaponSkin): THREE.Group {
+/** Construye el modelo 3D de un arma (con manos del operador) según su ficha.
+ *  Exportado para la vista previa 3D de la armería. */
+export function buildWeaponModel(def: WeaponDef, skin: WeaponSkin): THREE.Group {
   const cfg = { ...BASE, ...VIEW_CONFIGS[def.id] };
   const m = makeMats(skin);
   const g = new THREE.Group();

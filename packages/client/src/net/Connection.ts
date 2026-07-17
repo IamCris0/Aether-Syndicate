@@ -85,6 +85,10 @@ export class Connection {
     return this.unacked;
   }
 
+  voteMap(mapId: string): void {
+    this.socket.emit('voteMap', mapId);
+  }
+
   leaveRoom(): void {
     this.socket.emit('leaveRoom');
     this.unacked = [];

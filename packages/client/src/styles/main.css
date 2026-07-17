@@ -186,53 +186,98 @@ input:focus, select:focus { border-color: var(--accent); }
 
 .modal.wide { width: min(640px, 94vw); }
 
-/* ---------- Armería ---------- */
-.armory-list { display: flex; flex-direction: column; gap: 8px; }
-.armory-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 14px;
+/* ---------- Armería 2.0 ---------- */
+.armory-layout { display: flex; gap: 16px; min-height: 340px; }
+.armory-list {
+  display: flex; flex-direction: column; gap: 6px;
+  width: 220px; max-height: 380px; overflow-y: auto;
+}
+.armory-item {
+  display: flex; flex-direction: column; gap: 1px;
+  position: relative;
+  padding: 10px 12px;
   background: rgba(4, 10, 20, 0.7);
   border: 1px solid rgba(127, 146, 173, 0.2);
   border-radius: 8px;
   cursor: pointer;
 }
-.armory-row:hover { border-color: var(--accent2); }
-.armory-row.selected { border-color: var(--accent); background: rgba(56, 224, 200, 0.07); }
-.armory-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.armory-info .meta { color: var(--muted); font-size: 0.7rem; }
-.armory-stats { display: flex; flex-direction: column; gap: 3px; width: 170px; }
-.armory-stats .stat { display: flex; align-items: center; gap: 6px; }
-.armory-stats label { color: var(--muted); font-size: 0.55rem; width: 56px; letter-spacing: 0.1em; }
-.stat-bar { flex: 1; height: 5px; background: rgba(4, 10, 20, 0.9); border-radius: 3px; overflow: hidden; }
+.armory-item span { color: var(--muted); font-size: 0.68rem; }
+.armory-item i { position: absolute; right: 10px; top: 10px; color: var(--accent); font-style: normal; }
+.armory-item:hover { border-color: var(--accent2); }
+.armory-item.selected { border-color: var(--accent); background: rgba(56, 224, 200, 0.07); }
+.armory-preview { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+#armory-canvas {
+  width: 100%; height: 190px;
+  background: radial-gradient(ellipse at center, rgba(56,224,200,0.06), rgba(4,10,20,0.9));
+  border: 1px solid rgba(127, 146, 173, 0.2);
+  border-radius: 8px;
+}
+.armory-detail h4 { color: var(--accent); letter-spacing: 0.08em; margin-bottom: 2px; }
+.armory-class { color: var(--muted); font-size: 0.72rem; margin-bottom: 8px; }
+.armory-detail .stat { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.armory-detail label { color: var(--muted); font-size: 0.58rem; width: 70px; letter-spacing: 0.12em; }
+.stat-bar { flex: 1; height: 6px; background: rgba(4, 10, 20, 0.9); border-radius: 3px; overflow: hidden; }
 .stat-bar i { display: block; height: 100%; background: var(--accent2); }
-.armory-equip { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.15em; color: var(--muted); width: 76px; text-align: right; }
-.armory-row.selected .armory-equip { color: var(--accent); }
 
 /* ---------- Pase de batalla ---------- */
 .bp-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .bp-header span { font-weight: 800; letter-spacing: 0.12em; font-size: 0.8rem; }
 .bp-header .xp-bar { max-width: none; }
 .bp-hint { color: var(--muted); font-size: 0.72rem; margin-bottom: 12px; }
-.bp-grid {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 6px;
-  max-height: 46vh;
-  overflow-y: auto;
+/* Carril horizontal del pase (estilo vitrina). */
+.bp-track {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 10px 4px 14px;
+  scroll-behavior: smooth;
 }
-.bp-cell {
-  aspect-ratio: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+.bp-card {
+  flex: 0 0 86px;
+  height: 112px;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 8px 4px;
   background: rgba(4, 10, 20, 0.7);
   border: 1px solid rgba(127, 146, 173, 0.18);
-  border-radius: 6px;
-  font-size: 0.85rem;
+  border-radius: 8px;
+  text-align: center;
 }
-.bp-cell .bp-tier { font-size: 0.55rem; color: var(--muted); }
-.bp-cell.locked { opacity: 0.35; }
-.bp-cell.unlocked { border-color: rgba(95, 140, 255, 0.45); }
-.bp-cell.claimable { border-color: var(--accent); cursor: pointer; box-shadow: 0 0 8px rgba(56, 224, 200, 0.35); animation: bp-pulse 1.2s infinite alternate; }
-.bp-cell.claimed { border-color: rgba(56, 224, 200, 0.6); background: rgba(56, 224, 200, 0.08); cursor: pointer; }
+.bp-card .bp-tier { font-size: 0.6rem; color: var(--muted); font-weight: 700; }
+.bp-card .bp-icon { font-size: 1.1rem; display: flex; align-items: center; justify-content: center; flex: 1; }
+.bp-card .bp-name { font-size: 0.52rem; color: var(--muted); line-height: 1.25; min-height: 2em; }
+.bp-card.locked { opacity: 0.35; }
+.bp-card.unlocked { border-color: rgba(95, 140, 255, 0.45); }
+.bp-card.current { border-color: var(--warn); box-shadow: 0 0 10px rgba(255, 166, 64, 0.25); }
+.bp-card.claimable { border-color: var(--accent); cursor: pointer; box-shadow: 0 0 8px rgba(56, 224, 200, 0.35); animation: bp-pulse 1.2s infinite alternate; }
+.bp-card.claimable .bp-name { color: var(--accent); }
+.bp-card.claimed { border-color: rgba(56, 224, 200, 0.6); background: rgba(56, 224, 200, 0.08); cursor: pointer; }
+
+/* ---------- Misiones y logros ---------- */
+.missions-list { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
+.missions-section { color: var(--accent); letter-spacing: 0.2em; font-size: 0.7rem; margin: 10px 0 2px; }
+.mission-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: rgba(4, 10, 20, 0.7);
+  border: 1px solid rgba(127, 146, 173, 0.2);
+  border-radius: 8px;
+}
+.mission-row.complete { border-color: var(--accent); }
+.mission-row.claimed { opacity: 0.5; }
+.mission-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.mission-info span { color: var(--muted); font-size: 0.72rem; }
+.mission-bar { height: 5px; background: rgba(4, 10, 20, 0.9); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+.mission-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.mission-right { display: flex; align-items: center; gap: 10px; }
+.mission-progress { font-size: 0.75rem; font-weight: 700; }
+.mission-xp { color: var(--warn); font-size: 0.7rem; font-weight: 800; }
+.mission-claim { padding: 6px 12px; font-size: 0.7rem; }
+.mission-done { color: var(--accent); font-size: 1.1rem; }
+
+/* ---------- Votación de mapa ---------- */
+.mapvote { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.mapvote-label { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.2em; }
+.mapvote-btn.voted { border-color: var(--accent); background: rgba(56, 224, 200, 0.15); color: var(--accent); }
+.respawn-sub { color: var(--warn); font-size: 0.95rem; letter-spacing: 0.08em; }
 .bp-reward.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .bp-reward.dot.skin { border-radius: 3px; transform: rotate(45deg); border: 1px solid rgba(255,255,255,0.4); }
 .bp-empty { color: var(--muted); }

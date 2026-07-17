@@ -91,6 +91,10 @@ io.on('connection', (socket) => {
     if (room && typeof text === 'string' && text.trim()) room.chat(socket.id, text.trim());
   });
 
+  socket.on('voteMap', (mapId) => {
+    if (room && typeof mapId === 'string') room.castVote(socket.id, mapId);
+  });
+
   socket.on('leaveRoom', () => {
     room?.removePlayer(socket.id);
     room = null;

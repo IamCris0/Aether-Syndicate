@@ -80,6 +80,37 @@ export class Hud {
     }
   }
 
+  /** Pantalla de muerte: quién te eliminó y con qué. */
+  setDeathInfo(killerName: string | null, weaponName: string, headshot: boolean): void {
+    const title = document.getElementById('respawn-title')!;
+    const sub = document.getElementById('respawn-sub')!;
+    if (killerName) {
+      title.textContent = `ELIMINADO POR ${killerName.toUpperCase()}`;
+      sub.textContent = `${weaponName}${headshot ? ' · TIRO A LA CABEZA' : ''}`;
+    } else {
+      title.textContent = 'HAS CAÍDO';
+      sub.textContent = weaponName;
+    }
+  }
+
+  /** Botones de votación de mapa en la pantalla de fin de partida. */
+  showMapVote(options: Array<{ id: string; name: string }>, onVote: (mapId: string) => void): void {
+    const wrap = document.getElementById('mapvote')!;
+    wrap.classList.remove('hidden');
+    wrap.innerHTML = '<span class="mapvote-label">VOTA EL SIGUIENTE MAPA</span>';
+    for (const opt of options) {
+      const btn = document.createElement('button');
+      btn.className = 'btn mapvote-btn';
+      btn.textContent = opt.name;
+      btn.addEventListener('click', () => {
+        onVote(opt.id);
+        for (const b of wrap.querySelectorAll('.mapvote-btn')) b.classList.remove('voted');
+        btn.classList.add('voted');
+      });
+      wrap.appendChild(btn);
+    }
+  }
+
   updateMatch(snap: Snapshot, teams: boolean, selfId: string): void {
     const t = snap.scores.timeRemaining;
     this.timer.textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
@@ -166,6 +197,11 @@ export class Hud {
 
   hideMatchEnd(): void {
     this.matchendOverlay.classList.add('hidden');
+    const wrap = document.getElementById('mapvote');
+    if (wrap) {
+      wrap.classList.add('hidden');
+      wrap.innerHTML = '';
+    }
   }
 
   toggleScoreboard(show: boolean): void {
