@@ -174,6 +174,15 @@ export class Hud {
 
   private crosshairEl = $('crosshair');
 
+  /** Banner central al eliminar a un rival. */
+  showKillBanner(victimName: string, headshot: boolean): void {
+    const el = document.getElementById('kill-banner')!;
+    el.textContent = `${headshot ? '☠ ' : ''}HAS ELIMINADO A ${victimName.toUpperCase()}`;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
+
   /** Popup flotante de XP (+100 XP · BAJA). */
   showXpPopup(text: string): void {
     const el = document.createElement('div');

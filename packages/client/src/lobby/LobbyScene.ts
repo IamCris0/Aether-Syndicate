@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { buildOperator } from '../game/OperatorModel.js';
 
 /**
@@ -71,7 +70,9 @@ export class LobbyScene {
     // ---- Operador: GLB si existe, procedural (con la paleta equipada) si no ----
     this.scene.add(this.operator);
     this.setOperator(0x38e0c8, 0x232d40);
-    new GLTFLoader().load(
+    // GLTFLoader se importa perezosamente: no pesa en el bundle inicial.
+    void import('three/examples/jsm/loaders/GLTFLoader.js').then(({ GLTFLoader }) => {
+      new GLTFLoader().load(
       '/assets/models/operator.glb',
       (gltf) => {
         this.glbLoaded = true;
@@ -88,7 +89,8 @@ export class LobbyScene {
       },
       undefined,
       () => { /* sin GLB: se mantiene el operador procedural */ },
-    );
+      );
+    });
 
     canvas.addEventListener('mousemove', (e) => {
       const r = canvas.getBoundingClientRect();

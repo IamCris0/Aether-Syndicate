@@ -24,5 +24,15 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        // three.js y supabase en chunks propios: se cachean una vez y las
+        // actualizaciones del juego solo invalidan el chunk pequeño.
+        manualChunks: {
+          three: ['three'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
   },
 });

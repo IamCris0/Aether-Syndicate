@@ -24,6 +24,7 @@ import {
 import type { Connection } from '../net/Connection.js';
 import type { Input } from '../core/Input.js';
 import { World } from './World.js';
+import { Sparks } from './Sparks.js';
 import { PlayerAvatars } from './PlayerAvatars.js';
 import { WeaponView } from './WeaponView.js';
 import { AudioManager } from '../audio/AudioManager.js';
@@ -112,6 +113,9 @@ export class GameClient {
   });
   private explosions: Array<{ mesh: THREE.Mesh; light: THREE.PointLight; life: number }> = [];
   private shake = 0;
+  private sparks = new Sparks();
+  private worldTime = 0;
+  private quality: 'low' | 'medium' | 'high' = 'high';
 
   private matchEnded = false;
 
@@ -170,11 +174,13 @@ export class GameClient {
       this.scene.backgroundIntensity = 0.55; // que no compita con el combate
     });
 
-    this.world = new World(map);
+    this.quality = settings.quality ?? 'high';
+    this.world = new World(map, this.quality);
     this.avatars.gravityZones = map.gravityZones;
+    this.applySkybox(map);
     this.weaponView = new WeaponView(this.camera);
     this.weaponView.setSkin(cosmetics?.skinId ?? null);
-    this.scene.add(this.world.group, this.avatars.group, this.weaponView.tracerGroup);
+    this.scene.add(this.world.group, this.avatars.group, this.weaponView.tracerGroup, this.sparks.points);
 
     window.addEventListener('resize', this.onResize);
     this.connection.onSnapshot = (snap) => this.onSnapshot(snap);
@@ -234,6 +240,11 @@ export class GameClient {
     // ---- Interpolación de remotos y render ----
     this.avatars.interpolate(Date.now());
     this.updateExplosions(dt);
+    this.sparks.update(dt);
+
+    // Pulso del reactor: los paneles emisivos "respiran".
+    this.worldTime += dt;
+    this.world.accentMaterial.emissiveIntensity = 0.18 + Math.sin(this.worldTime * 1.8) * 0.08;
     this.recoverRecoil(dt);
     this.updateCamera(dt);
 
@@ -428,13 +439,24 @@ export class GameClient {
   private rebuildWorld(mapId: string): void {
     const map = getMap(mapId);
     this.scene.remove(this.world.group);
-    this.world = new World(map);
+    this.world = new World(map, this.quality);
     this.scene.add(this.world.group);
     this.moveCtx.brushes = map.brushes;
     this.moveCtx.gravityZones = map.gravityZones;
     this.avatars.gravityZones = map.gravityZones;
-    this.scene.background = new THREE.Color(map.skyColor);
     this.scene.fog = new THREE.FogExp2(map.fogColor, map.fogDensity);
+    this.applySkybox(map);
+  }
+
+  /** Fondo: skybox equirrectangular si el mapa lo define; color plano si no. */
+  private applySkybox(map: ReturnType<typeof getMap>): void {
+    this.scene.background = new THREE.Color(map.skyColor);
+    if (!map.skyboxUrl) return;
+    new THREE.TextureLoader().load(map.skyboxUrl, (tex) => {
+      tex.mapping = THREE.EquirectangularReflectionMapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      if (this.world.map.id === map.id) this.scene.background = tex;
+    });
   }
 
   private syncGrenades(snap: Snapshot): void {
@@ -511,6 +533,7 @@ export class GameClient {
           this.audio.playShot(getWeapon(shooter?.weaponId ?? '').class, dist);
         }
         this.weaponView.addTracer(from, to, ev.hit);
+        this.sparks.burst(to.x, to.y, to.z);
         break;
       }
       case 'damage': {
@@ -534,6 +557,8 @@ export class GameClient {
         if (ev.killerId === selfId && ev.victimId !== selfId) {
           this.hud.flashHitmarker('kill');
           this.audio.playKill();
+          const victim = snap.players.find((p) => p.id === ev.victimId);
+          this.hud.showKillBanner(victim?.name ?? '???', ev.headshot);
           this.sessionKills++;
           this.awardXp(XP_PER_KILL, 'BAJA');
           if (ev.headshot) {

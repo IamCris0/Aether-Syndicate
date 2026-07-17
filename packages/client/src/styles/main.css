@@ -454,6 +454,24 @@ input:focus, select:focus { border-color: var(--accent); }
 .scoreboard tr.team0 td:first-child { border-left: 3px solid var(--accent); }
 .scoreboard tr.team1 td:first-child { border-left: 3px solid var(--danger); }
 
+.kill-banner {
+  position: absolute; top: 30%; left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 12px rgba(56, 224, 200, 0.8), 0 0 4px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+}
+.kill-banner.show { animation: kill-banner 1.4s ease-out; }
+@keyframes kill-banner {
+  0% { opacity: 0; transform: translateX(-50%) scale(1.25); }
+  12% { opacity: 1; transform: translateX(-50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .xp-popups {
   position: absolute; bottom: 22%; left: 50%;
   transform: translateX(-50%);

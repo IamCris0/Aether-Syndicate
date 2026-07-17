@@ -1,27 +1,45 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { BrushMaterial, MapDef } from '@aether/shared';
+
+export type WorldQuality = 'low' | 'medium' | 'high';
 
 /**
  * Construye la escena visual de un mapa a partir de sus brushes.
  * La malla visual se deriva de la MISMA geometría que usa la colisión,
  * de modo que lo que ves es exactamente contra lo que chocas.
+ *
+ * Optimización: los brushes se FUSIONAN en una sola malla por material
+ * (~80 draw calls → ~6), y la densidad de partículas escala con la calidad.
  */
 export class World {
   readonly group = new THREE.Group();
+  /** Material emisivo de paneles/reactores (el cliente lo hace pulsar). */
+  accentMaterial: THREE.MeshStandardMaterial;
 
-  constructor(readonly map: MapDef) {
+  constructor(readonly map: MapDef, quality: WorldQuality = 'high') {
     const materials = createMaterials();
+    this.accentMaterial = materials.accent as THREE.MeshStandardMaterial;
+    const particleScale = quality === 'low' ? 0.35 : quality === 'medium' ? 0.7 : 1;
 
+    // Agrupar la geometría de los brushes por material y fusionarla.
+    const byMaterial = new Map<BrushMaterial, THREE.BufferGeometry[]>();
     for (const brush of map.brushes) {
       if (brush.material === 'invisible') continue;
       const sx = brush.max.x - brush.min.x;
       const sy = brush.max.y - brush.min.y;
       const sz = brush.max.z - brush.min.z;
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), materials[brush.material]);
-      mesh.position.set(brush.min.x + sx / 2, brush.min.y + sy / 2, brush.min.z + sz / 2);
-      mesh.castShadow = false;
-      mesh.receiveShadow = false;
-      this.group.add(mesh);
+      const geo = new THREE.BoxGeometry(sx, sy, sz);
+      geo.translate(brush.min.x + sx / 2, brush.min.y + sy / 2, brush.min.z + sz / 2);
+      let list = byMaterial.get(brush.material);
+      if (!list) byMaterial.set(brush.material, (list = []));
+      list.push(geo);
+    }
+    for (const [material, geos] of byMaterial) {
+      const merged = mergeGeometries(geos);
+      if (!merged) continue;
+      for (const g of geos) g.dispose();
+      this.group.add(new THREE.Mesh(merged, materials[material]));
     }
 
     // Volúmenes de gravedad: hint visual sutil (niebla de partículas estáticas).
@@ -37,7 +55,7 @@ export class World {
       box.position.set(zone.min.x + sx / 2, zone.min.y + sy / 2, zone.min.z + sz / 2);
       this.group.add(box);
 
-      const motes = createMotes(zone.min, zone.max, Math.floor(sx * sy * sz * 0.01), color);
+      const motes = createMotes(zone.min, zone.max, Math.floor(sx * sy * sz * 0.01 * particleScale), color);
       this.group.add(motes);
     }
 
@@ -56,7 +74,7 @@ export class World {
       }
     }
 
-    this.group.add(createStarfield());
+    this.group.add(createStarfield(Math.floor(1500 * particleScale)));
   }
 }
 
@@ -119,8 +137,7 @@ function createMotes(min: { x: number; y: number; z: number }, max: { x: number;
   return new THREE.Points(geo, new THREE.PointsMaterial({ color, size: 0.06, transparent: true, opacity: 0.5 }));
 }
 
-function createStarfield(): THREE.Points {
-  const n = 1500;
+function createStarfield(n: number): THREE.Points {
   const positions = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
     const r = 400 + Math.random() * 400;

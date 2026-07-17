@@ -48,6 +48,8 @@ export interface MapDef {
   lights: LightDef[];
   /** Caer por debajo de esta Y mata al jugador (vacío espacial). */
   killY: number;
+  /** Skybox equirrectangular opcional (ruta en /assets del cliente). */
+  skyboxUrl?: string;
   skyColor: number;
   fogColor: number;
   fogDensity: number;

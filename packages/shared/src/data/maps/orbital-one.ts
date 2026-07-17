@@ -200,6 +200,7 @@ export const ORBITAL_ONE: MapDef = {
     { type: 'point', color: 0x5f8cff, intensity: 120, pos: vec3(36, 6, 0) },
   ],
   killY: -40,
+  skyboxUrl: '/assets/skyboxes/nebula-01.jpg',
   skyColor: 0x04070f,
   fogColor: 0x0a1220,
   fogDensity: 0.008,
