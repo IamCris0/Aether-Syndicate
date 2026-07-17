@@ -110,7 +110,14 @@ export class PlayerAvatars {
     const visor = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.12, 0.1), accent);
     visor.position.set(0, 0.98, -0.2);
 
-    group.add(body, head, visor);
+    // Arma en las manos (silueta genérica apuntando hacia delante).
+    const gunMat = new THREE.MeshStandardMaterial({ color: 0x11161f, roughness: 0.5, metalness: 0.8 });
+    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, 0.55), gunMat);
+    gun.position.set(0.24, 0.42, -0.35);
+    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.2), gunMat);
+    barrel.position.set(0.24, 0.45, -0.7);
+
+    group.add(body, head, visor, gun, barrel);
     return { group, body, head, buffer: [] };
   }
 }

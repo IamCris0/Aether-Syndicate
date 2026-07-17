@@ -124,6 +124,14 @@ brushes.push(B(-18, 0, -23, 18, 10, -22, 'hull'));
 brushes.push(B(24, 0, -23, 47, 10, -22, 'hull'));
 brushes.push(B(-24, 3.2, -23, -18, 10, -22, 'hull')); // dintel puerta oeste
 brushes.push(B(18, 3.2, -23, 24, 10, -22, 'hull')); // dintel puerta este
+// ---- v2: pack de cobertura ----
+brushes.push(B(-30, 0, -16, -28, 6, -14, 'hull')); // pilar hangar oeste
+brushes.push(B(28, 0, 14, 30, 6, 16, 'hull')); // pilar hangar este
+brushes.push(B(-8, 0, 16, -5, 1.6, 19, 'accent')); // cajas corredor sur
+brushes.push(B(5, 0, -19, 8, 1.4, -16, 'accent')); // cajas corredor norte
+brushes.push(B(-8, 10.6, -8.3, -2, 11.3, -8, 'catwalk')); // barandilla balcón NO
+brushes.push(B(2, 10.6, 8, 8, 11.3, 8.3, 'catwalk')); // barandilla balcón SE
+
 // Muro sur con dos puertas (x -26..-20 y 20..26):
 brushes[2] = B(-47, 0, 22, -26, 10, 23, 'hull');
 brushes.push(B(-20, 0, 22, 20, 10, 23, 'hull'));

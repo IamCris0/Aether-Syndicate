@@ -60,24 +60,34 @@ export class World {
   }
 }
 
-function createMaterials(): Record<BrushMaterial, THREE.Material> {
-  const floor = new THREE.MeshStandardMaterial({ color: 0x2a3346, roughness: 0.9, metalness: 0.4 });
-
-  // Textura de suelo generada (pipeline Higgsfield): si existe, sustituye al
-  // color plano; si falta, el material procedural sigue siendo el fallback.
-  new THREE.TextureLoader().load('/assets/textures/floor-deck-01.jpg', (tex) => {
+/**
+ * Aplica una textura generada (pipeline Higgsfield) a un material si existe;
+ * si falta el fichero, el material conserva su color procedural (fallback).
+ */
+function tryTexture(mat: THREE.MeshStandardMaterial, url: string, repeat: number): void {
+  new THREE.TextureLoader().load(url, (tex) => {
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(10, 10);
+    tex.repeat.set(repeat, repeat);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 4;
-    floor.map = tex;
-    floor.color.set(0xffffff);
-    floor.needsUpdate = true;
+    mat.map = tex;
+    mat.color.set(0xffffff);
+    mat.needsUpdate = true;
   });
+}
+
+function createMaterials(): Record<BrushMaterial, THREE.Material> {
+  const floor = new THREE.MeshStandardMaterial({ color: 0x2a3346, roughness: 0.9, metalness: 0.4 });
+  const hull = new THREE.MeshStandardMaterial({ color: 0x39465c, roughness: 0.75, metalness: 0.6 });
+  const catwalk = new THREE.MeshStandardMaterial({ color: 0x4a5670, roughness: 0.6, metalness: 0.8 });
+
+  tryTexture(floor, '/assets/textures/floor-deck-01.jpg', 10);
+  tryTexture(hull, '/assets/textures/hull-wall-01.jpg', 6);
+  tryTexture(catwalk, '/assets/textures/catwalk-01.jpg', 8);
 
   return {
-    hull: new THREE.MeshStandardMaterial({ color: 0x39465c, roughness: 0.75, metalness: 0.6 }),
+    hull,
     floor,
     glass: new THREE.MeshStandardMaterial({
       color: 0x7fd0ff, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.28,
@@ -85,7 +95,7 @@ function createMaterials(): Record<BrushMaterial, THREE.Material> {
     accent: new THREE.MeshStandardMaterial({
       color: 0x1c2740, roughness: 0.5, metalness: 0.7, emissive: 0x38e0c8, emissiveIntensity: 0.18,
     }),
-    catwalk: new THREE.MeshStandardMaterial({ color: 0x4a5670, roughness: 0.6, metalness: 0.8 }),
+    catwalk,
     rock: new THREE.MeshStandardMaterial({ color: 0x554f4a, roughness: 1, metalness: 0.05 }),
     invisible: new THREE.MeshBasicMaterial({ visible: false }),
   };

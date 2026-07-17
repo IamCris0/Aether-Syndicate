@@ -15,10 +15,18 @@ let snapshots = 0;
 let sawGrenade = false;
 let sawExplosion = false;
 
+// Uso: tsx tools/smoke-test.ts [mapId] — con mapId crea una sala en ese mapa.
+const mapId = process.argv[2];
+
 socket.on('connect', () => {
   socket.emit(
     'join',
-    { protocolVersion: 2, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7 },
+    mapId
+      ? {
+          protocolVersion: 2, playerName: 'SmokeBot', method: 'create', loadout: ['smg-wisp'], level: 7,
+          createOptions: { name: `smoke-${mapId}`, maxPlayers: 8, mode: 'ffa', mapId, timeLimitS: 300, scoreLimit: 30, bots: 3, gravityScale: 1 },
+        }
+      : { protocolVersion: 2, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7 },
     (res: any) => {
       if (!res.ok) fail('join: ' + res.error);
       console.log('JOIN OK:', JSON.stringify(res));
