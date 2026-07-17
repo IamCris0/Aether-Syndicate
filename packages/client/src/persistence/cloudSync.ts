@@ -8,16 +8,39 @@ import type { PlayerProfile } from './profile.js';
  * y al iniciar sesión se resuelve el conflicto local↔nube.
  */
 
-export async function fetchCloudProfile(userId: string): Promise<PlayerProfile | null> {
+export interface CloudRecord {
+  profile: PlayerProfile;
+  username: string | null;
+}
+
+export async function fetchCloudRecord(userId: string): Promise<CloudRecord | null> {
   const supa = getSupabase();
   if (!supa) return null;
   const { data, error } = await supa
     .from('profiles')
-    .select('data')
+    .select('data, username')
     .eq('user_id', userId)
     .maybeSingle();
   if (error || !data) return null;
-  return data.data as PlayerProfile;
+  return { profile: data.data as PlayerProfile, username: (data.username as string | null) ?? null };
+}
+
+/**
+ * Reclama un nombre de usuario único (índice UNIQUE case-insensitive).
+ * 'taken' si otro usuario ya lo tiene; el perfil viaja en el mismo upsert.
+ */
+export async function claimUsername(
+  userId: string,
+  username: string,
+  profile: PlayerProfile,
+): Promise<'ok' | 'taken' | 'error'> {
+  const supa = getSupabase();
+  if (!supa) return 'error';
+  const { error } = await supa
+    .from('profiles')
+    .upsert({ user_id: userId, username, data: profile, updated_at: new Date().toISOString() });
+  if (!error) return 'ok';
+  return error.code === '23505' ? 'taken' : 'error';
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;

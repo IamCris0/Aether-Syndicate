@@ -8,7 +8,7 @@ import { loadSettings, saveSettings, type PlayerSettings } from './persistence/s
 import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
 import { getSupabase } from './services/supabase.js';
-import { fetchCloudProfile, pushCloudProfile, resolveProfiles } from './persistence/cloudSync.js';
+import { claimUsername, fetchCloudRecord, pushCloudProfile, resolveProfiles } from './persistence/cloudSync.js';
 import { applyCosmetics, openArmory, openBattlepass, openMissions, openOperators, renderLobbyCard } from './ui/meta.js';
 import { getOperator } from '@aether/shared';
 import { LobbyScene } from './lobby/LobbyScene.js';
@@ -106,23 +106,70 @@ async function initCloudAuth(): Promise<void> {
 async function onCloudSignIn(userId: string, user: { user_metadata?: Record<string, unknown>; email?: string }): Promise<void> {
   cloudUserId = userId;
 
-  // Nombre: el local manda si ya existe; si no, el de Google.
-  if (!settings.name) {
-    const meta = user.user_metadata ?? {};
-    settings.name = String(meta.full_name ?? meta.name ?? user.email?.split('@')[0] ?? 'Operador').slice(0, 20);
-    await saveSettings(settings);
-  }
-
   // Perfil: gana el de mayor progreso (bpXp) y se re-sincronizan ambos lados.
-  const cloud = await fetchCloudProfile(userId);
-  profile = resolveProfiles(profile, cloud);
+  const record = await fetchCloudRecord(userId);
+  profile = resolveProfiles(profile, record?.profile ?? null);
   profile.userId = userId;
   applyCosmetics(profile);
   persistProfile();
 
-  setStatus('');
-  enterLobby();
-  $('lobby-status').textContent = `Sesión iniciada — perfil sincronizado con la nube`;
+  if (record?.username) {
+    // Ya tiene nombre único: es su identidad, manda sobre lo local.
+    settings.name = record.username;
+    await saveSettings(settings);
+    setStatus('');
+    enterLobby();
+    $('lobby-status').textContent = 'Sesión iniciada — perfil sincronizado con la nube';
+  } else {
+    // Primer login: debe crear su nombre de usuario único.
+    openUsernameModal(userId, user);
+  }
+}
+
+/** Modal obligatorio de creación de nombre único (primer login con Google). */
+function openUsernameModal(userId: string, user: { user_metadata?: Record<string, unknown>; email?: string }): void {
+  const modal = $('modal-username') as HTMLDialogElement;
+  const inputEl = $('username-input') as HTMLInputElement;
+  const errorEl = $('username-error');
+
+  const meta = user.user_metadata ?? {};
+  const suggested = String(meta.full_name ?? meta.name ?? user.email?.split('@')[0] ?? '')
+    .replace(/[^a-zA-Z0-9_\-]/g, '')
+    .slice(0, 16);
+  inputEl.value = suggested;
+  errorEl.classList.add('hidden');
+
+  modal.addEventListener('cancel', (e) => e.preventDefault()); // obligatorio
+  modal.showModal();
+
+  const showError = (msg: string): void => {
+    errorEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+  };
+
+  ($('form-username') as HTMLFormElement).onsubmit = async (e) => {
+    e.preventDefault();
+    const name = inputEl.value.trim();
+    if (!/^[a-zA-Z0-9_\-]{3,16}$/.test(name)) {
+      showError('Debe tener 3-16 caracteres: letras, números, guiones o guion bajo.');
+      return;
+    }
+    const result = await claimUsername(userId, name, profile);
+    if (result === 'taken') {
+      showError(`«${name}» ya existe. Elige otro nombre.`);
+      return;
+    }
+    if (result === 'error') {
+      showError('No se pudo guardar. Comprueba tu conexión e inténtalo de nuevo.');
+      return;
+    }
+    settings.name = name;
+    await saveSettings(settings);
+    modal.close();
+    setStatus('');
+    enterLobby();
+    $('lobby-status').textContent = `Bienvenido, ${name} — perfil sincronizado con la nube`;
+  };
 }
 
 let lobbyScene: LobbyScene | null = null;

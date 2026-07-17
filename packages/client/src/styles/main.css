@@ -294,6 +294,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .mapvote-label { color: var(--muted); font-size: 0.68rem; letter-spacing: 0.2em; }
 .mapvote-btn.voted { border-color: var(--accent); background: rgba(56, 224, 200, 0.15); color: var(--accent); }
 .respawn-sub { color: var(--warn); font-size: 0.95rem; letter-spacing: 0.08em; }
+.username-error { color: var(--danger); font-size: 0.78rem; font-weight: 700; }
 .bp-reward.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
 .bp-reward.dot.skin { border-radius: 3px; transform: rotate(45deg); border: 1px solid rgba(255,255,255,0.4); }
 .bp-empty { color: var(--muted); }

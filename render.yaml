@@ -1,0 +1,22 @@
+# Despliegue en Render (https://render.com) — Blueprint de UN solo servicio:
+# el servidor Node sirve el cliente compilado y el Socket.IO en la misma URL.
+# Pasos: sube el repo a GitHub → Render → New → Blueprint → selecciona el repo.
+services:
+  - type: web
+    name: aether-syndicate
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build -w @aether/client
+    startCommand: npm run start -w @aether/server
+    healthCheckPath: /health
+    envVars:
+      # El servidor sirve el build del cliente (ruta relativa a packages/server).
+      - key: CLIENT_DIST
+        value: ../client/dist
+      - key: AETHER_REGION
+        value: render
+      # Claves PUBLICABLES de Supabase (necesarias en tiempo de build del cliente).
+      - key: VITE_SUPABASE_URL
+        value: https://dedoiaptbvknnfidqrko.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZG9pYXB0YnZrbm5maWRxcmtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyODUzMDIsImV4cCI6MjA5OTg2MTMwMn0.aeoa4YmQDVYuK0TMwrTkMWYLP9toJJqtN8fmXJPtr1I

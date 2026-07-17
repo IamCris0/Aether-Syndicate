@@ -155,6 +155,19 @@
     </div>
   </dialog>
 
+  <!-- ====== MODAL: CREAR NOMBRE DE USUARIO (primer login Google) ====== -->
+  <dialog id="modal-username" class="modal">
+    <h3>Elige tu nombre de operador</h3>
+    <p class="bp-hint">Será tu identidad única en Aether Syndicate (3-16 caracteres: letras, números, guiones).</p>
+    <form id="form-username" method="dialog">
+      <input id="username-input" type="text" maxlength="16" placeholder="Nombre de usuario" autocomplete="off" />
+      <p id="username-error" class="username-error hidden"></p>
+      <div class="modal-actions">
+        <button type="submit" class="btn primary">CONFIRMAR</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- ====== MODAL: OPERADORES ====== -->
   <dialog id="modal-operators" class="modal wide">
     <h3>Operadores</h3>

@@ -29,3 +29,27 @@ drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
   on public.profiles for update
   using (auth.uid() = user_id);
+
+-- ============================================================
+-- v2: nombre de usuario ÚNICO (sin distinguir mayúsculas)
+-- ============================================================
+alter table public.profiles add column if not exists username text;
+
+create unique index if not exists profiles_username_unique
+  on public.profiles (lower(username));
+
+-- Comprobar disponibilidad sin exponer los perfiles de otros usuarios:
+-- función SECURITY DEFINER que solo responde sí/no.
+create or replace function public.username_taken(candidate text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where lower(username) = lower(candidate)
+  );
+$$;
+
+grant execute on function public.username_taken(text) to anon, authenticated;
