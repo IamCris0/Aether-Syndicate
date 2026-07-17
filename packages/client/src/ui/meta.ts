@@ -18,6 +18,8 @@ import {
 import type { PlayerProfile } from '../persistence/profile.js';
 import { ensureMissionPeriods } from '../persistence/profile.js';
 import { WEAPON_SKINS, buildWeaponModel } from '../game/WeaponView.js';
+import { buildOperator } from '../game/OperatorModel.js';
+import { OPERATORS, getOperator, type OperatorDef } from '@aether/shared';
 
 /**
  * UI del metajuego: tarjeta de perfil, armería con vista previa 3D,
@@ -170,6 +172,104 @@ function updateArmoryModel(profile: PlayerProfile): void {
   armoryScene.add(armoryModel);
 }
 
+// ---------------------------------------------------------------- operadores
+
+let opSelected = '';
+let opRenderer: THREE.WebGLRenderer | null = null;
+let opScene: THREE.Scene | null = null;
+let opCamera: THREE.PerspectiveCamera | null = null;
+let opModel: THREE.Group | null = null;
+
+/** Un operador está desbloqueado si es gratuito o su nivel del pase fue reclamado. */
+const operatorUnlocked = (profile: PlayerProfile, op: OperatorDef): boolean =>
+  op.bpTier === null || profile.claimedTiers.includes(op.bpTier);
+
+export function openOperators(profile: PlayerProfile, onSave: () => void, onEquip: () => void): void {
+  opSelected = profile.equippedOperator;
+  renderOperators(profile, onSave, onEquip);
+  ($('modal-operators') as HTMLDialogElement).showModal();
+  startOperatorPreview();
+}
+
+function renderOperators(profile: PlayerProfile, onSave: () => void, onEquip: () => void): void {
+  const list = $('operators-list');
+  list.innerHTML = '';
+  for (const op of Object.values(OPERATORS)) {
+    const unlocked = operatorUnlocked(profile, op);
+    const equipped = op.id === profile.equippedOperator;
+    const row = document.createElement('div');
+    row.className = `armory-item${op.id === opSelected ? ' selected' : ''}${unlocked ? '' : ' locked'}`;
+    row.innerHTML = `
+      <strong><span class="op-swatch" style="background:#${op.accent.toString(16).padStart(6, '0')}"></span>${op.name}</strong>
+      <span>${unlocked ? op.corp : `🔒 Nivel ${op.bpTier} del pase`}</span>
+      ${equipped ? '<i>✓</i>' : ''}`;
+    row.addEventListener('click', () => {
+      opSelected = op.id;
+      renderOperators(profile, onSave, onEquip);
+      updateOperatorModel();
+    });
+    list.appendChild(row);
+  }
+
+  const op = getOperator(opSelected);
+  const unlocked = operatorUnlocked(profile, op);
+  $('operator-detail').innerHTML = `
+    <h4>${op.name}</h4>
+    <p class="armory-class">${op.corp}</p>
+    <p class="op-desc">${op.description}</p>`;
+  const btn = $('operator-equip') as HTMLButtonElement;
+  const equipped = opSelected === profile.equippedOperator;
+  btn.textContent = equipped ? 'EQUIPADO' : unlocked ? 'EQUIPAR' : `NIVEL ${op.bpTier} DEL PASE`;
+  btn.disabled = equipped || !unlocked;
+  btn.onclick = () => {
+    profile.equippedOperator = opSelected;
+    onSave();
+    onEquip();
+    renderOperators(profile, onSave, onEquip);
+  };
+}
+
+function startOperatorPreview(): void {
+  const canvas = $('operator-canvas') as unknown as HTMLCanvasElement;
+  if (!opRenderer) {
+    opRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    opRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    opScene = new THREE.Scene();
+    opCamera = new THREE.PerspectiveCamera(35, 1, 0.05, 10);
+    opCamera.position.set(0.2, 1.15, 2.6);
+    opCamera.lookAt(0, 0.95, 0);
+    opScene.add(new THREE.AmbientLight(0x223044, 2));
+    const key = new THREE.DirectionalLight(0xd8ecff, 3);
+    key.position.set(1.5, 2.5, 2);
+    const rim = new THREE.DirectionalLight(0xffffff, 1.6);
+    rim.position.set(-2, 1.5, -2);
+    opScene.add(key, rim);
+  }
+  updateOperatorModel();
+
+  const modal = $('modal-operators') as HTMLDialogElement;
+  const loop = (): void => {
+    if (!modal.open || !opRenderer || !opScene || !opCamera) return;
+    const w = canvas.clientWidth || 1;
+    const h = canvas.clientHeight || 1;
+    opRenderer.setSize(w, h, false);
+    opCamera.aspect = w / h;
+    opCamera.updateProjectionMatrix();
+    if (opModel) opModel.rotation.y += 0.012;
+    opRenderer.render(opScene, opCamera);
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+
+function updateOperatorModel(): void {
+  if (!opScene) return;
+  if (opModel) opScene.remove(opModel);
+  const op = getOperator(opSelected);
+  opModel = buildOperator(op.accent, op.armor);
+  opScene.add(opModel);
+}
+
 // ---------------------------------------------------------------- pase de batalla
 
 export function openBattlepass(profile: PlayerProfile, onSave: () => void): void {
@@ -244,6 +344,7 @@ function equipReward(profile: PlayerProfile, r: BattlePassReward): void {
   if (r.type === 'crosshair') profile.equippedCrosshair = r.value;
   if (r.type === 'emblem') profile.equippedEmblem = r.value;
   if (r.type === 'skin') profile.equippedSkin = r.id;
+  if (r.type === 'operator') profile.equippedOperator = r.id;
   applyCosmetics(profile);
 }
 

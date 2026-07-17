@@ -19,6 +19,8 @@ export interface JoinRequest {
   loadout?: string[];
   /** Nivel de cuenta para mostrar en el marcador (verificado por Supabase en fase 2). */
   level?: number;
+  /** Operador cosmético equipado (validado contra el registro). */
+  operatorId?: string;
 }
 
 export interface JoinResponse {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { INTERPOLATION_DELAY_MS, gravityKindAt, type GravityZone, type PlayerSnapshot } from '@aether/shared';
+import { INTERPOLATION_DELAY_MS, getOperator, gravityKindAt, type GravityZone, type PlayerSnapshot } from '@aether/shared';
 import { buildOperator } from './OperatorModel.js';
 
 /**
@@ -38,7 +38,12 @@ export class PlayerAvatars {
       seen.add(p.id);
       let avatar = this.avatars.get(p.id);
       if (!avatar) {
-        avatar = this.createAvatar(TEAM_COLORS[p.team] ?? 0xffa640);
+        // En modos de equipo manda el color del equipo (legibilidad);
+        // en FFA cada jugador luce la paleta de su operador equipado.
+        const op = getOperator(p.operatorId);
+        avatar = p.team === 2
+          ? this.createAvatar(op.accent, op.armor)
+          : this.createAvatar(TEAM_COLORS[p.team] ?? 0xffa640);
         this.avatars.set(p.id, avatar);
         this.group.add(avatar.group);
       }
@@ -101,11 +106,11 @@ export class PlayerAvatars {
     return avatar && avatar.group.visible ? avatar.group.position.clone() : null;
   }
 
-  private createAvatar(color: number): Avatar {
+  private createAvatar(accent: number, armor?: number): Avatar {
     const group = new THREE.Group();
-    // Rig completo del operador con el acento del equipo; el origen del rig
-    // está en los pies y la posición replicada es el CENTRO del jugador.
-    const rig = buildOperator(color);
+    // Rig completo del operador; el origen del rig está en los pies y la
+    // posición replicada es el CENTRO del jugador.
+    const rig = buildOperator(accent, armor);
     rig.position.y = -0.92;
     group.add(rig);
     return { group, rig, buffer: [] };

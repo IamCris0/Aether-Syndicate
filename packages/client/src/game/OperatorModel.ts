@@ -5,10 +5,10 @@ import * as THREE from 'three';
  * piernas y luces de corporación). Lo usan los avatares in-game; el color
  * de acento identifica al equipo. Origen en los PIES (y=0), altura ~1.84.
  */
-export function buildOperator(accentColor: number): THREE.Group {
+export function buildOperator(accentColor: number, armorColor = 0x232d40): THREE.Group {
   const rig = new THREE.Group();
 
-  const armor = new THREE.MeshStandardMaterial({ color: 0x232d40, roughness: 0.45, metalness: 0.85 });
+  const armor = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.45, metalness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x141b29, roughness: 0.7, metalness: 0.5 });
   const glow = new THREE.MeshStandardMaterial({
     color: accentColor, emissive: accentColor, emissiveIntensity: 1.6, roughness: 0.3, metalness: 0.3,

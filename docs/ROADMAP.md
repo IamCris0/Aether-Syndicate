@@ -7,8 +7,8 @@
 | **3 — Lobby 3D** | Escena real tras el menú: podio, luces cinematográficas, operador 3D con idle/parallax (3.1 ✅); arma equipada en manos (3.2); emotes (3.3) | 3.1 ✅ |
 | **4 — Armas 2.0** | Geometría 3D por arma ✅; manos 1ª persona ✅; animaciones recarga/cambio/tajo ✅; skins del pase ✅; sonido real por arma (Higgsfield SFX + fallback procedural) ✅; pendiente: inspección | 🔶 |
 | **5 — Mapas 2.0** | Orbital One v2 ✅; texturas ✅; Refinería Kessler ✅ con **gravedad invertida jugable** (Canal Invertido: cámara rotada, controles adaptados, avatares boca abajo) ✅ | ✅ |
-| **6 — Operadores** | Sistema data-driven equipable (solo cosmético), modelos in-game por equipo, operador rojo | ⬜ |
-| **7 — Menús/UX 2.0** | Rediseño visual completo, transiciones, sonidos de UI, onboarding | ⬜ |
+| **6 — Operadores** | ✅ 6 operadores data-driven (2 gratis + 4 por el pase), sección con preview 3D, replicados por red (protocolo v4): en FFA ves la paleta del rival, en equipos manda el color del equipo; el lobby refleja el equipado | ✅ |
+| **7 — Menús/UX 2.0** | Sonidos de UI ✅, transiciones de pantallas/modales ✅, preset de calidad gráfica (baja/media/alta) ✅; pendiente: onboarding | 🔶 |
 | **8 — Retención** | Misiones diarias/semanales ✅ (rotación por fecha), logros ✅, death cam + "eliminado por" ✅, votación de mapa con cambio en caliente ✅ | ✅ |
 
 Las fases históricas (0-2) y el detalle original se conservan abajo.

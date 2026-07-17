@@ -53,6 +53,7 @@
       <button id="btn-browse" class="btn big">EXPLORAR SALAS</button>
       <div class="lobby-nav-secondary">
         <button id="btn-armory" class="btn ghost">ARMERÍA</button>
+        <button id="btn-operators" class="btn ghost">OPERADORES</button>
         <button id="btn-missions" class="btn ghost">MISIONES</button>
         <button id="btn-battlepass" class="btn ghost">PASE DE BATALLA</button>
         <button id="btn-settings" class="btn ghost">AJUSTES</button>
@@ -154,6 +155,22 @@
     </div>
   </dialog>
 
+  <!-- ====== MODAL: OPERADORES ====== -->
+  <dialog id="modal-operators" class="modal wide">
+    <h3>Operadores</h3>
+    <div class="armory-layout">
+      <div id="operators-list" class="armory-list"></div>
+      <div class="armory-preview">
+        <canvas id="operator-canvas"></canvas>
+        <div id="operator-detail" class="armory-detail"></div>
+        <button id="operator-equip" class="btn primary">EQUIPAR</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" data-close>Cerrar</button>
+    </div>
+  </dialog>
+
   <!-- ====== MODAL: MISIONES Y LOGROS ====== -->
   <dialog id="modal-missions" class="modal wide">
     <h3>Misiones y logros</h3>
@@ -170,6 +187,13 @@
       <label>Sensibilidad <input name="sensitivity" type="range" min="0.2" max="5" step="0.1" value="1" /></label>
       <label>FOV <input name="fov" type="range" min="60" max="120" step="1" value="90" /></label>
       <label>Volumen <input name="volume" type="range" min="0" max="1" step="0.05" value="0.7" /></label>
+      <label>Calidad gráfica
+        <select name="quality">
+          <option value="low">Baja (mejor FPS)</option>
+          <option value="medium">Media</option>
+          <option value="high" selected>Alta</option>
+        </select>
+      </label>
       <div class="modal-actions">
         <button type="submit" class="btn primary" data-close>Guardar</button>
       </div>

@@ -18,6 +18,7 @@ type GameSocket = Socket<ServerToClient, ClientToServer>;
 export interface JoinExtra {
   loadout?: string[];
   level?: number;
+  operatorId?: string;
 }
 
 /**

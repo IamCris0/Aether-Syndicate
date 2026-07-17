@@ -57,6 +57,8 @@ export interface PlayerSnapshot {
   shield: number;
   team: TeamId;
   weaponId: string;
+  /** Operador equipado (cosmético): define la paleta del avatar. */
+  operatorId: string;
   kills: number;
   deaths: number;
   assists: number;

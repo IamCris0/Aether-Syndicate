@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { buildOperator } from '../game/OperatorModel.js';
 
 /**
  * Lobby 3D estilo vestidor (Fortnite-like): el operador equipado renderizado
@@ -19,6 +20,7 @@ export class LobbyScene {
   private running = false;
   private time = 0;
   private mouseX = 0;
+  private glbLoaded = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -66,12 +68,13 @@ export class LobbyScene {
     this.scene.add(ground);
     this.scene.fog = new THREE.FogExp2(0x04070f, 0.055);
 
-    // ---- Operador: GLB si existe, procedural si no ----
+    // ---- Operador: GLB si existe, procedural (con la paleta equipada) si no ----
     this.scene.add(this.operator);
-    this.buildProceduralOperator();
+    this.setOperator(0x38e0c8, 0x232d40);
     new GLTFLoader().load(
       '/assets/models/operator.glb',
       (gltf) => {
+        this.glbLoaded = true;
         this.operator.clear();
         const model = gltf.scene;
         // Normalizar altura a ~1.85 m sobre el podio.
@@ -93,7 +96,14 @@ export class LobbyScene {
     });
   }
 
-  /** Operador construido con primitivas: casco, visor emisivo, placas, luces. */
+  /** Reconstruye el operador con la paleta del equipado (salvo si hay GLB). */
+  setOperator(accent: number, armor: number): void {
+    if (this.glbLoaded) return;
+    this.operator.clear();
+    this.operator.add(buildOperator(accent, armor));
+  }
+
+  /** (Legado) Operador detallado con primitivas — sustituido por buildOperator. */
   private buildProceduralOperator(): void {
     const armor = new THREE.MeshStandardMaterial({ color: 0x232d40, roughness: 0.45, metalness: 0.85 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x141b29, roughness: 0.7, metalness: 0.5 });

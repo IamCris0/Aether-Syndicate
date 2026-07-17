@@ -64,7 +64,7 @@ io.on('connection', (socket) => {
         target = rooms.matchmake(req.preferredMode);
       }
 
-      target.addPlayer(socket, name, req.loadout, req.level);
+      target.addPlayer(socket, name, req.loadout, req.level, req.operatorId);
       room = target;
       cb({
         ok: true,

@@ -62,6 +62,7 @@ export class PlayerEntity {
   score = 0;
   ping = 0;
   level = 1;
+  operatorId = 'op-cipher';
 
   /** Inputs pendientes de aplicar y último aplicado (para el ack). */
   pendingInputs: InputCommand[] = [];
@@ -144,6 +145,7 @@ export class PlayerEntity {
       shield: Math.ceil(this.shield),
       team: this.team,
       weaponId: this.weaponId,
+      operatorId: this.operatorId,
       kills: this.kills,
       deaths: this.deaths,
       assists: this.assists,

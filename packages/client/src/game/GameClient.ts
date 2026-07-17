@@ -40,6 +40,9 @@ import { Hud } from '../ui/hud.js';
  *  - INTERPOLACIÓN: los demás jugadores se dibujan ~100 ms en el pasado,
  *    interpolados entre snapshots.
  */
+const pixelRatioFor = (quality: 'low' | 'medium' | 'high'): number =>
+  quality === 'low' ? 0.75 : quality === 'medium' ? 1 : Math.min(window.devicePixelRatio, 2);
+
 export class GameClient {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -129,7 +132,7 @@ export class GameClient {
     private readonly input: Input,
     mapId: string,
     mode: GameModeId,
-    settings: { fov: number; sensitivity: number; volume: number },
+    settings: { fov: number; sensitivity: number; volume: number; quality?: 'low' | 'medium' | 'high' },
     audio?: AudioManager,
     cosmetics?: { skinId: string | null },
   ) {
@@ -143,8 +146,12 @@ export class GameClient {
     const map = getMap(mapId);
     this.moveCtx = { brushes: map.brushes, gravityZones: map.gravityZones, gravityScale: 1 };
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: settings.quality !== 'low',
+      powerPreference: 'high-performance',
+    });
+    this.renderer.setPixelRatio(pixelRatioFor(settings.quality ?? 'high'));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -182,9 +189,10 @@ export class GameClient {
   }
 
   /** Aplicar ajustes en caliente desde el modal (sin reiniciar la partida). */
-  applySettings(s: { fov: number; sensitivity: number }): void {
+  applySettings(s: { fov: number; sensitivity: number; quality?: 'low' | 'medium' | 'high' }): void {
     this.baseFov = s.fov;
     this.baseSensitivity = s.sensitivity;
+    if (s.quality) this.renderer.setPixelRatio(pixelRatioFor(s.quality));
   }
 
   start(): void {

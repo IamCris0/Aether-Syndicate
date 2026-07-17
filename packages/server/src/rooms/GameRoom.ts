@@ -12,6 +12,7 @@ import {
   WEAPONS,
   distance,
   getMap,
+  getOperator,
   getWeapon,
   gravityAt,
   stepMovement,
@@ -128,10 +129,11 @@ export class GameRoom {
     return this.playerCount < this.options.maxPlayers;
   }
 
-  addPlayer(socket: GameSocket, name: string, loadout?: string[], level?: number): PlayerEntity {
+  addPlayer(socket: GameSocket, name: string, loadout?: string[], level?: number, operatorId?: string): PlayerEntity {
     const entity = new PlayerEntity(socket.id, name);
     entity.team = this.mode.def.teams ? this.mode.assignTeam(this.entities()) : 2;
     entity.level = Math.max(1, Math.min(100, Math.floor(level ?? 1) || 1));
+    entity.operatorId = getOperator(operatorId).id; // valida contra el registro
     // El modo manda (Gun Game); si no, se aplica el loadout de la armería validado.
     const forced = this.mode.loadoutFor(entity);
     if (forced) entity.equipLoadout(forced);

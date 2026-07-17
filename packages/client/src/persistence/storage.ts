@@ -43,11 +43,14 @@ export async function kvSet<T>(key: string, value: T): Promise<void> {
 }
 
 /** Ajustes del jugador con valores por defecto. */
+export type GraphicsQuality = 'low' | 'medium' | 'high';
+
 export interface PlayerSettings {
   name: string;
   sensitivity: number;
   fov: number;
   volume: number;
+  quality: GraphicsQuality;
 }
 
 export const DEFAULT_SETTINGS: PlayerSettings = {
@@ -55,6 +58,7 @@ export const DEFAULT_SETTINGS: PlayerSettings = {
   sensitivity: 1,
   fov: 90,
   volume: 0.7,
+  quality: 'high',
 };
 
 export async function loadSettings(): Promise<PlayerSettings> {

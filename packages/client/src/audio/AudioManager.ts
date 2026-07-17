@@ -157,6 +157,11 @@ export class AudioManager {
     this.blip(1100, 0.04, 0.18);
   }
 
+  /** Clic sutil para los botones de la interfaz. */
+  playUiClick(): void {
+    this.blip(720, 0.03, 0.09);
+  }
+
   playHit(): void {
     this.blip(1600, 0.05, 0.25);
   }

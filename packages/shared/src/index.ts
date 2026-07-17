@@ -19,4 +19,5 @@ export * from './data/weapons.js';
 export * from './data/gamemodes.js';
 export * from './data/progression.js';
 export * from './data/missions.js';
+export * from './data/operators.js';
 export * from './data/maps/index.js';

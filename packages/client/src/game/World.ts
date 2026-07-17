@@ -82,9 +82,16 @@ function createMaterials(): Record<BrushMaterial, THREE.Material> {
   const hull = new THREE.MeshStandardMaterial({ color: 0x39465c, roughness: 0.75, metalness: 0.6 });
   const catwalk = new THREE.MeshStandardMaterial({ color: 0x4a5670, roughness: 0.6, metalness: 0.8 });
 
+  const accent = new THREE.MeshStandardMaterial({
+    color: 0x1c2740, roughness: 0.5, metalness: 0.7, emissive: 0x38e0c8, emissiveIntensity: 0.18,
+  });
+  const rock = new THREE.MeshStandardMaterial({ color: 0x554f4a, roughness: 1, metalness: 0.05 });
+
   tryTexture(floor, '/assets/textures/floor-deck-01.jpg', 10);
   tryTexture(hull, '/assets/textures/hull-wall-01.jpg', 6);
   tryTexture(catwalk, '/assets/textures/catwalk-01.jpg', 8);
+  tryTexture(accent, '/assets/textures/accent-panel-01.jpg', 4);
+  tryTexture(rock, '/assets/textures/rock-01.jpg', 5);
 
   return {
     hull,
@@ -92,11 +99,9 @@ function createMaterials(): Record<BrushMaterial, THREE.Material> {
     glass: new THREE.MeshStandardMaterial({
       color: 0x7fd0ff, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.28,
     }),
-    accent: new THREE.MeshStandardMaterial({
-      color: 0x1c2740, roughness: 0.5, metalness: 0.7, emissive: 0x38e0c8, emissiveIntensity: 0.18,
-    }),
+    accent,
     catwalk,
-    rock: new THREE.MeshStandardMaterial({ color: 0x554f4a, roughness: 1, metalness: 0.05 }),
+    rock,
     invisible: new THREE.MeshBasicMaterial({ visible: false }),
   };
 }

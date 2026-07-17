@@ -23,10 +23,10 @@ socket.on('connect', () => {
     'join',
     mapId
       ? {
-          protocolVersion: 3, playerName: 'SmokeBot', method: 'create', loadout: ['smg-wisp'], level: 7,
+          protocolVersion: 4, playerName: 'SmokeBot', method: 'create', loadout: ['smg-wisp'], level: 7,
           createOptions: { name: `smoke-${mapId}`, maxPlayers: 8, mode: 'ffa', mapId, timeLimitS: 300, scoreLimit: 30, bots: 3, gravityScale: 1 },
         }
-      : { protocolVersion: 3, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7 },
+      : { protocolVersion: 4, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7, operatorId: 'op-vermell' },
     (res: any) => {
       if (!res.ok) fail('join: ' + res.error);
       console.log('JOIN OK:', JSON.stringify(res));
@@ -75,7 +75,8 @@ setTimeout(() => {
   if (!sawExplosion) fail('ninguna granada explotó');
   if (me.weaponId !== 'smg-wisp') fail(`loadout de armería no aplicado (arma: ${me.weaponId})`);
   if (me.level !== 7) fail(`nivel no aplicado (nivel: ${me.level})`);
-  console.log('arma equipada:', me.weaponId, '· nivel:', me.level);
+  if (!mapId && me.operatorId !== 'op-vermell') fail(`operador no replicado (${me.operatorId})`);
+  console.log('arma equipada:', me.weaponId, '· nivel:', me.level, '· operador:', me.operatorId);
   console.log('SMOKE TEST OK');
   process.exit(0);
 }, 4000);

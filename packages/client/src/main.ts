@@ -7,7 +7,8 @@ import { AudioManager } from './audio/AudioManager.js';
 import { loadSettings, saveSettings, type PlayerSettings } from './persistence/storage.js';
 import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
-import { applyCosmetics, openArmory, openBattlepass, openMissions, renderLobbyCard } from './ui/meta.js';
+import { applyCosmetics, openArmory, openBattlepass, openMissions, openOperators, renderLobbyCard } from './ui/meta.js';
+import { getOperator } from '@aether/shared';
 import { LobbyScene } from './lobby/LobbyScene.js';
 
 /**
@@ -30,6 +31,7 @@ let profile: PlayerProfile;
 const joinExtra = (): JoinExtra => ({
   loadout: [profile.loadoutPrimary, 'pistol-nomad', 'knife-fang'],
   level: profile.level,
+  operatorId: profile.equippedOperator,
 });
 
 const persistProfile = (): void => {
@@ -78,6 +80,7 @@ function enterLobby(): void {
   renderLobbyCard(profile, settings.name);
   if (!lobbyScene) lobbyScene = new LobbyScene($('lobby-canvas') as unknown as HTMLCanvasElement);
   lobbyScene.start();
+  applyOperatorToLobby();
   lobbyMusic.volume = Math.min(settings.volume * 0.35, 1);
   void lobbyMusic.play().catch(() => { /* sin música si falta el asset */ });
   setStatus('');
@@ -170,6 +173,15 @@ $('btn-armory').addEventListener('click', () => openArmory(profile, persistProfi
 $('btn-battlepass').addEventListener('click', () => openBattlepass(profile, persistProfile));
 
 $('btn-missions').addEventListener('click', () => openMissions(profile, persistProfile));
+
+$('btn-operators').addEventListener('click', () =>
+  openOperators(profile, persistProfile, applyOperatorToLobby));
+
+/** El operador del lobby 3D refleja siempre el equipado. */
+function applyOperatorToLobby(): void {
+  const op = getOperator(profile.equippedOperator);
+  lobbyScene?.setOperator(op.accent, op.armor);
+}
 
 $('btn-create').addEventListener('click', () => {
   populateCreateForm();
@@ -271,6 +283,7 @@ function applySettingsToForm(): void {
   (form.elements.namedItem('sensitivity') as HTMLInputElement).value = String(settings.sensitivity);
   (form.elements.namedItem('fov') as HTMLInputElement).value = String(settings.fov);
   (form.elements.namedItem('volume') as HTMLInputElement).value = String(settings.volume);
+  (form.elements.namedItem('quality') as HTMLSelectElement).value = settings.quality;
 }
 
 $('form-settings').addEventListener('submit', () => {
@@ -278,10 +291,19 @@ $('form-settings').addEventListener('submit', () => {
   settings.sensitivity = Number((form.elements.namedItem('sensitivity') as HTMLInputElement).value);
   settings.fov = Number((form.elements.namedItem('fov') as HTMLInputElement).value);
   settings.volume = Number((form.elements.namedItem('volume') as HTMLInputElement).value);
+  settings.quality = (form.elements.namedItem('quality') as HTMLSelectElement).value as typeof settings.quality;
   input.sensitivity = settings.sensitivity;
   audio.setVolume(settings.volume);
   game?.applySettings(settings);
   void saveSettings(settings);
+});
+
+// Sonido sutil en todos los botones de la interfaz.
+document.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).closest('button')) {
+    audio.ensureContext();
+    audio.playUiClick();
+  }
 });
 
 // ---------------------------------------------------------------- PWA
