@@ -1,5 +1,18 @@
 # Roadmap de desarrollo
 
+## LA GRAN REFORMA — plan de fases activo
+
+| Fase | Contenido | Estado |
+|---|---|---|
+| **3 — Lobby 3D** | Escena real tras el menú: podio, luces cinematográficas, operador 3D con idle/parallax (3.1 ✅); arma equipada en manos (3.2); emotes (3.3) | 3.1 ✅ |
+| **4 — Armas 2.0** | Geometría 3D por arma individual, animaciones de recarga/cambio, skins/camuflajes visuales, inspección | ⬜ |
+| **5 — Mapas 2.0** | Orbital One v2 (cobertura, verticalidad, props), texturas completas, mapa «Refinería Kessler» (gravedad invertida) | ⬜ |
+| **6 — Operadores** | Sistema data-driven equipable (solo cosmético), modelos in-game por equipo, operador rojo | ⬜ |
+| **7 — Menús/UX 2.0** | Rediseño visual completo, transiciones, sonidos de UI, onboarding | ⬜ |
+| **8 — Retención** | Misiones diarias/semanales, logros, killcam, votación de mapa | ⬜ |
+
+Las fases históricas (0-2) y el detalle original se conservan abajo.
+
 ## Fase 0 — Fundación ✅ (actual, v0.1)
 
 Monorepo, simulación compartida determinista, gravedad dinámica por zonas, netcode completo (predicción/reconciliación/interpolación/lag comp), matchmaking + salas con código, FFA/TDM/Gun Game, 7 armas data-driven, mapa Orbital One, bots, HUD, PWA, IndexedDB.

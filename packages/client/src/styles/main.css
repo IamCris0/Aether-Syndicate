@@ -118,23 +118,18 @@ input:focus, select:focus { border-color: var(--accent); }
   overflow: hidden;
 }
 
-/* Operador renderizado en el lobby (arte generado con Higgsfield). */
-.lobby-operator {
+/* Lobby 3D: el operador renderizado en tiempo real (estilo vestidor). */
+.lobby-canvas {
   position: absolute;
-  right: 4vw;
-  bottom: 0;
-  height: 92vh;
-  max-width: 44vw;
-  object-fit: contain;
-  object-position: bottom;
+  right: 0;
+  top: 0;
+  width: 56vw;
+  height: 100vh;
   z-index: -1;
-  pointer-events: none;
-  filter: drop-shadow(0 0 40px rgba(56, 224, 200, 0.18));
-  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 12%);
-  mask-image: linear-gradient(to top, transparent 0%, black 12%);
+  pointer-events: auto; /* parallax con el ratón */
 }
 @media (max-width: 900px) {
-  .lobby-operator { opacity: 0.35; }
+  .lobby-canvas { opacity: 0.4; width: 100vw; }
 }
 .lobby-header { display: flex; justify-content: space-between; align-items: flex-start; }
 

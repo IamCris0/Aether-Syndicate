@@ -8,6 +8,7 @@ import { loadSettings, saveSettings, type PlayerSettings } from './persistence/s
 import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
 import { applyCosmetics, openArmory, openBattlepass, renderLobbyCard } from './ui/meta.js';
+import { LobbyScene } from './lobby/LobbyScene.js';
 
 /**
  * Punto de entrada del cliente: gestiona las pantallas (login → lobby → juego)
@@ -66,9 +67,13 @@ async function init(): Promise<void> {
   });
 }
 
+let lobbyScene: LobbyScene | null = null;
+
 function enterLobby(): void {
   showScreen('screen-lobby');
   renderLobbyCard(profile, settings.name);
+  if (!lobbyScene) lobbyScene = new LobbyScene($('lobby-canvas') as unknown as HTMLCanvasElement);
+  lobbyScene.start();
   setStatus('');
   if (!connection) {
     connection = new Connection();
@@ -99,6 +104,7 @@ async function startGame(join: () => Promise<Awaited<ReturnType<Connection['matc
   setStatus('');
   showScreen(null);
   closeAllModals();
+  lobbyScene?.stop();
 
   game = new GameClient(canvas, connection, input, res.mapId, res.mode, settings, audio);
   game.onXpBanked = (result) => {
