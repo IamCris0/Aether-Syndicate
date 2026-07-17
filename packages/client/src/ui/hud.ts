@@ -71,6 +71,7 @@ export class Hud {
     this.grenades.classList.toggle('empty', self.grenades === 0);
     this.reload.classList.toggle('hidden', !self.reloading);
     this.ping.textContent = `${me.ping} ms`;
+    this.ping.className = me.ping < 80 ? 'ping-good' : me.ping < 150 ? 'ping-mid' : 'ping-bad';
 
     if (!me.alive && self.respawnIn > 0) {
       this.respawnOverlay.classList.remove('hidden');

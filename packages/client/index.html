@@ -61,7 +61,7 @@
     </nav>
     <footer class="lobby-footer">
       <span id="lobby-status"></span>
-      <span>v0.2.0 — beta</span>
+      <span>v0.3.0 — beta</span>
     </footer>
   </section>
 
@@ -124,10 +124,13 @@
     </div>
   </dialog>
 
-  <!-- ====== MODAL: ARMERÍA 2.0 ====== -->
-  <dialog id="modal-armory" class="modal wide">
-    <h3>Armería</h3>
-    <div class="armory-layout">
+  <!-- ====== PANTALLA: ARMERÍA ====== -->
+  <section id="screen-armory" class="screen meta-screen">
+    <header class="meta-header">
+      <button class="btn ghost" data-back>← VOLVER</button>
+      <h3>ARMERÍA</h3>
+    </header>
+    <div class="armory-layout meta-body">
       <div id="armory-list" class="armory-list"></div>
       <div class="armory-preview">
         <canvas id="armory-canvas"></canvas>
@@ -135,25 +138,22 @@
         <button id="armory-equip" class="btn primary">EQUIPAR</button>
       </div>
     </div>
-    <div class="modal-actions">
-      <button type="button" class="btn ghost" data-close>Cerrar</button>
-    </div>
-  </dialog>
+  </section>
 
-  <!-- ====== MODAL: PASE DE BATALLA (carril) ====== -->
-  <dialog id="modal-battlepass" class="modal wide">
-    <h3>Pase de batalla — Temporada 0 «Órbita Cero»</h3>
+  <!-- ====== PANTALLA: PASE DE BATALLA ====== -->
+  <section id="screen-battlepass" class="screen meta-screen">
+    <header class="meta-header">
+      <button class="btn ghost" data-back>← VOLVER</button>
+      <h3>PASE DE BATALLA — TEMPORADA 0 «ÓRBITA CERO»</h3>
+      <button type="button" id="bp-claim-all" class="btn">RECLAMAR TODO</button>
+    </header>
     <div class="bp-header">
       <span id="bp-progress-text"></span>
       <div class="xp-bar"><i id="bp-progress-fill"></i></div>
     </div>
     <p class="bp-hint">Gana XP jugando y con misiones. Clic en una recompensa desbloqueada para reclamarla y equiparla.</p>
-    <div id="bp-track" class="bp-track"></div>
-    <div class="modal-actions">
-      <button type="button" id="bp-claim-all" class="btn">RECLAMAR TODO</button>
-      <button type="button" class="btn primary" data-close>Cerrar</button>
-    </div>
-  </dialog>
+    <div id="bp-track" class="bp-track meta-body"></div>
+  </section>
 
   <!-- ====== MODAL: CREAR NOMBRE DE USUARIO (primer login Google) ====== -->
   <dialog id="modal-username" class="modal">
@@ -168,10 +168,13 @@
     </form>
   </dialog>
 
-  <!-- ====== MODAL: OPERADORES ====== -->
-  <dialog id="modal-operators" class="modal wide">
-    <h3>Operadores</h3>
-    <div class="armory-layout">
+  <!-- ====== PANTALLA: OPERADORES ====== -->
+  <section id="screen-operators" class="screen meta-screen">
+    <header class="meta-header">
+      <button class="btn ghost" data-back>← VOLVER</button>
+      <h3>OPERADORES</h3>
+    </header>
+    <div class="armory-layout meta-body">
       <div id="operators-list" class="armory-list"></div>
       <div class="armory-preview">
         <canvas id="operator-canvas"></canvas>
@@ -179,19 +182,16 @@
         <button id="operator-equip" class="btn primary">EQUIPAR</button>
       </div>
     </div>
-    <div class="modal-actions">
-      <button type="button" class="btn ghost" data-close>Cerrar</button>
-    </div>
-  </dialog>
+  </section>
 
-  <!-- ====== MODAL: MISIONES Y LOGROS ====== -->
-  <dialog id="modal-missions" class="modal wide">
-    <h3>Misiones y logros</h3>
-    <div id="missions-list" class="missions-list"></div>
-    <div class="modal-actions">
-      <button type="button" class="btn primary" data-close>Cerrar</button>
-    </div>
-  </dialog>
+  <!-- ====== PANTALLA: MISIONES Y LOGROS ====== -->
+  <section id="screen-missions" class="screen meta-screen">
+    <header class="meta-header">
+      <button class="btn ghost" data-back>← VOLVER</button>
+      <h3>MISIONES Y LOGROS</h3>
+    </header>
+    <div id="missions-list" class="missions-list meta-body"></div>
+  </section>
 
   <!-- ====== MODAL: AJUSTES ====== -->
   <dialog id="modal-settings" class="modal">

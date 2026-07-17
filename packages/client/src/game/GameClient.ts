@@ -12,8 +12,10 @@ import {
   getMap,
   getWeapon,
   gravityKindAt,
+  raycastBrushes,
   stepMovement,
   vec3,
+  viewDirection,
   type GameModeId,
   type InputCommand,
   type MovementContext,
@@ -330,6 +332,25 @@ export class GameClient {
       this.weaponView.onShotFired();
       this.audio.playShot(weapon.class, 0);
 
+      // Trazadora + chispas PREDICHAS: el disparo se ve al instante aunque
+      // el servidor esté lejos (el impacto real lo confirma el snapshot).
+      if (weapon.class !== 'melee') {
+        const eyeSign = 1 - 2 * this.gravityFlip;
+        const eye = vec3(
+          this.predicted.pos.x,
+          this.predicted.pos.y + PLAYER_EYE_HEIGHT * (this.predicted.crouching ? 0.6 : 1) * eyeSign,
+          this.predicted.pos.z,
+        );
+        const dir = viewDirection(vec3(), this.input.yaw, this.input.pitch);
+        const t = raycastBrushes(eye, dir, this.moveCtx.brushes, weapon.maxRange);
+        this.weaponView.addTracer(
+          new THREE.Vector3(eye.x, eye.y - 0.06, eye.z),
+          new THREE.Vector3(eye.x + dir.x * t, eye.y + dir.y * t, eye.z + dir.z * t),
+          false,
+        );
+        this.sparks.burst(eye.x + dir.x * t, eye.y + dir.y * t, eye.z + dir.z * t);
+      }
+
       // Retroceso por PATRÓN: los primeros disparos suben más, el drift
       // horizontal alterna de forma predecible (aprendible) y ADS lo reduce.
       const adsK = this.aiming ? 0.55 : 1;
@@ -521,8 +542,8 @@ export class GameClient {
         const from = new THREE.Vector3(ev.origin.x, ev.origin.y, ev.origin.z);
         const to = new THREE.Vector3(ev.endPoint.x, ev.endPoint.y, ev.endPoint.z);
         if (ev.shooterId === selfId) {
-          // El sonido y el retroceso ya se predijeron localmente: aquí solo
-          // llega la CONFIRMACIÓN del servidor (impactos).
+          // Sonido, retroceso, trazadora y chispas ya se predijeron: aquí
+          // solo llega la CONFIRMACIÓN de impacto del servidor.
           if (ev.hit) {
             this.hud.flashHitmarker('normal');
             this.audio.playHit();
@@ -531,9 +552,9 @@ export class GameClient {
           const dist = this.me ? from.distanceTo(new THREE.Vector3(this.me.pos.x, this.me.pos.y, this.me.pos.z)) : 30;
           const shooter = snap.players.find((p) => p.id === ev.shooterId);
           this.audio.playShot(getWeapon(shooter?.weaponId ?? '').class, dist);
+          this.weaponView.addTracer(from, to, ev.hit);
+          this.sparks.burst(to.x, to.y, to.z);
         }
-        this.weaponView.addTracer(from, to, ev.hit);
-        this.sparks.burst(to.x, to.y, to.z);
         break;
       }
       case 'damage': {

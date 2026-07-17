@@ -6,6 +6,10 @@ services:
     name: aether-syndicate
     runtime: node
     plan: free
+    # us-east: la mejor latencia media para LATAM/España (el default de
+    # Render es Oregon, que añade ~80-120 ms). Cambiar región requiere
+    # RECREAR el servicio: borra el actual y vuelve a aplicar el Blueprint.
+    region: ohio
     buildCommand: npm install && npm run build -w @aether/client
     startCommand: npm run start -w @aether/server
     healthCheckPath: /health

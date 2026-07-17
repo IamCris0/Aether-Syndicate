@@ -28,6 +28,12 @@ import { OPERATORS, getOperator, type OperatorDef } from '@aether/shared';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 
+/** Navegación de pantallas (mismo sistema .screen/.active que main.ts). */
+function showSection(id: string): void {
+  for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
+  $(id).classList.add('active');
+}
+
 // ---------------------------------------------------------------- cosméticos
 
 export function applyCosmetics(profile: PlayerProfile): void {
@@ -77,7 +83,7 @@ export function openArmory(profile: PlayerProfile, onSave: () => void): void {
   armorySelected = profile.loadoutPrimary;
   renderArmoryList(profile, onSave);
   renderArmoryDetail(profile, onSave);
-  ($('modal-armory') as HTMLDialogElement).showModal();
+  showSection('screen-armory');
   startArmoryPreview(profile);
 }
 
@@ -148,9 +154,9 @@ function startArmoryPreview(profile: PlayerProfile): void {
   }
   updateArmoryModel(profile);
 
-  const modal = $('modal-armory') as HTMLDialogElement;
+  const section = $('screen-armory');
   const loop = (): void => {
-    if (!modal.open || !armoryRenderer || !armoryScene || !armoryCamera) return;
+    if (!section.classList.contains('active') || !armoryRenderer || !armoryScene || !armoryCamera) return;
     const w = canvas.clientWidth || 1;
     const h = canvas.clientHeight || 1;
     armoryRenderer.setSize(w, h, false);
@@ -187,7 +193,7 @@ const operatorUnlocked = (profile: PlayerProfile, op: OperatorDef): boolean =>
 export function openOperators(profile: PlayerProfile, onSave: () => void, onEquip: () => void): void {
   opSelected = profile.equippedOperator;
   renderOperators(profile, onSave, onEquip);
-  ($('modal-operators') as HTMLDialogElement).showModal();
+  showSection('screen-operators');
   startOperatorPreview();
 }
 
@@ -247,9 +253,9 @@ function startOperatorPreview(): void {
   }
   updateOperatorModel();
 
-  const modal = $('modal-operators') as HTMLDialogElement;
+  const section = $('screen-operators');
   const loop = (): void => {
-    if (!modal.open || !opRenderer || !opScene || !opCamera) return;
+    if (!section.classList.contains('active') || !opRenderer || !opScene || !opCamera) return;
     const w = canvas.clientWidth || 1;
     const h = canvas.clientHeight || 1;
     opRenderer.setSize(w, h, false);
@@ -274,10 +280,10 @@ function updateOperatorModel(): void {
 
 export function openBattlepass(profile: PlayerProfile, onSave: () => void): void {
   renderBattlepass(profile, onSave);
-  ($('modal-battlepass') as HTMLDialogElement).showModal();
+  showSection('screen-battlepass');
   // Auto-scroll al nivel actual.
   const current = document.querySelector('.bp-card.current');
-  current?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  current?.scrollIntoView({ block: 'center' });
 }
 
 function renderBattlepass(profile: PlayerProfile, onSave: () => void): void {
@@ -332,11 +338,29 @@ function renderBattlepass(profile: PlayerProfile, onSave: () => void): void {
   };
 }
 
+/** Vista previa VISUAL de cada recompensa (no solo un icono). */
 function rewardIcon(r: BattlePassReward): string {
-  if (r.type === 'crosshair') return `<span class="bp-reward dot" style="background:${r.value}"></span>`;
-  if (r.type === 'skin') return `<span class="bp-reward dot skin" style="background:${r.value}"></span>`;
-  if (r.type === 'emblem') return `<span class="bp-reward">${r.value}</span>`;
-  return '<span class="bp-reward">Aa</span>';
+  if (r.type === 'crosshair') {
+    return `<span class="rp-crosshair" style="--c:${r.value}"><i></i><i></i><i></i><i></i><b></b></span>`;
+  }
+  if (r.type === 'skin') {
+    return `<span class="rp-skin" style="--c:${r.value}">
+      <svg viewBox="0 0 64 26" width="56" height="23">
+        <path d="M2 11 h40 l5 -7 h5 v7 h10 v7 h-16 l-5 5 h-14 l-3 8 h-9 l3 -8 h-16 z"
+              fill="#141b29" stroke="var(--c)" stroke-width="2"/>
+        <rect x="14" y="13" width="18" height="3" fill="var(--c)"/>
+      </svg></span>`;
+  }
+  if (r.type === 'operator') {
+    return `<span class="rp-operator" style="--c:${r.value}">
+      <svg viewBox="0 0 40 40" width="34" height="34">
+        <rect x="8" y="4" width="24" height="22" rx="7" fill="#1a2334" stroke="#39465c" stroke-width="2"/>
+        <rect x="12" y="14" width="16" height="5" rx="2" fill="var(--c)"/>
+        <rect x="6" y="26" width="28" height="10" rx="3" fill="#232d40"/>
+      </svg></span>`;
+  }
+  if (r.type === 'emblem') return `<span class="rp-emblem">${r.value}</span>`;
+  return `<span class="rp-title">«${r.value}»</span>`;
 }
 
 function equipReward(profile: PlayerProfile, r: BattlePassReward): void {
@@ -353,7 +377,7 @@ function equipReward(profile: PlayerProfile, r: BattlePassReward): void {
 export function openMissions(profile: PlayerProfile, onSave: () => void): void {
   ensureMissionPeriods(profile);
   renderMissions(profile, onSave);
-  ($('modal-missions') as HTMLDialogElement).showModal();
+  showSection('screen-missions');
 }
 
 function renderMissions(profile: PlayerProfile, onSave: () => void): void {

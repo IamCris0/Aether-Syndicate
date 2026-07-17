@@ -304,6 +304,14 @@ for (const btn of document.querySelectorAll('[data-close]')) {
   btn.addEventListener('click', () => (btn.closest('dialog') as HTMLDialogElement).close());
 }
 
+// Botón "Volver" de las pantallas meta → lobby.
+for (const btn of document.querySelectorAll('[data-back]')) {
+  btn.addEventListener('click', () => {
+    showScreen('screen-lobby');
+    renderLobbyCard(profile, settings.name);
+  });
+}
+
 // ---------------------------------------------------------------- crear sala
 
 function populateCreateForm(): void {
