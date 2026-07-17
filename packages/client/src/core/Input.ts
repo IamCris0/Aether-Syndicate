@@ -9,6 +9,8 @@ export class Input {
   yaw = 0;
   pitch = 0;
   sensitivity = 1;
+  /** En gravedad invertida (cámara rotada 180º) el ratón se invierte. */
+  invertLook = false;
 
   /** Slot solicitado con las teclas 1..3 (se consume una vez). */
   private requestedSlot = -1;
@@ -51,7 +53,7 @@ export class Input {
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
-      const k = 0.0022 * this.sensitivity;
+      const k = 0.0022 * this.sensitivity * (this.invertLook ? -1 : 1);
       this.yaw -= e.movementX * k;
       this.pitch -= e.movementY * k;
       this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch));

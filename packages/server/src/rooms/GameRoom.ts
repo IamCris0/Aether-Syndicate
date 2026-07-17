@@ -12,6 +12,7 @@ import {
   distance,
   getMap,
   getWeapon,
+  gravityAt,
   stepMovement,
   type ClientToServer,
   type GameEvent,
@@ -280,12 +281,14 @@ export class GameRoom {
     const firePressed = (cmd.buttons & Buttons.Fire) !== 0;
     const canTrigger = weapon.automatic || !e.firingHeld;
     if (firePressed && canTrigger && now >= e.nextFireAt && e.reloadingUntil === 0) {
+      // En gravedad invertida el ojo está bajo el centro del jugador.
+      const eyeSign = gravityAt(this.moveCtx.gravityZones, e.move.pos, this.moveCtx.gravityScale) > 0 ? -1 : 1;
       if (weapon.class === 'melee') {
-        this.resolveShot(e, fireMelee(e, all, weapon), weapon.id, now);
+        this.resolveShot(e, fireMelee(e, all, weapon, eyeSign), weapon.id, now);
         e.nextFireAt = now + 1000 / weapon.fireRate;
       } else if (e.ammo > 0) {
         e.ammo--;
-        this.resolveShot(e, fireHitscan(e, all, this.map.brushes, weapon, now, this.rng, aiming), weapon.id, now);
+        this.resolveShot(e, fireHitscan(e, all, this.map.brushes, weapon, now, this.rng, aiming, eyeSign), weapon.id, now);
         e.nextFireAt = now + 1000 / weapon.fireRate;
         if (e.ammo === 0 && e.reserveAmmo > 0) e.reloadingUntil = now + weapon.reloadTimeS * 1000;
       }

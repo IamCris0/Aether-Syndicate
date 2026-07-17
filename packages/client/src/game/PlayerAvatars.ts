@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { INTERPOLATION_DELAY_MS, type PlayerSnapshot } from '@aether/shared';
+import { INTERPOLATION_DELAY_MS, gravityKindAt, type GravityZone, type PlayerSnapshot } from '@aether/shared';
 
 /**
  * Renderiza y anima a los jugadores remotos.
@@ -27,6 +27,8 @@ const TEAM_COLORS: Record<number, number> = { 0: 0x38e0c8, 1: 0xff4d5e, 2: 0xffa
 export class PlayerAvatars {
   readonly group = new THREE.Group();
   private avatars = new Map<string, Avatar>();
+  /** Zonas de gravedad del mapa: los avatares en zona invertida se voltean. */
+  gravityZones: GravityZone[] = [];
 
   update(players: PlayerSnapshot[], selfId: string, now: number): void {
     const seen = new Set<string>();
@@ -88,6 +90,11 @@ export class PlayerAvatars {
       const crouch = b.crouching ? 0.7 : 1;
       avatar.body.scale.y = crouch;
       avatar.head.position.y = b.crouching ? 0.55 : 0.95;
+
+      // Gravedad invertida: el avatar camina boca abajo por el techo.
+      const inverted = gravityKindAt(this.gravityZones, avatar.group.position) === 'inverted';
+      const targetFlip = inverted ? Math.PI : 0;
+      avatar.group.rotation.z += (targetFlip - avatar.group.rotation.z) * 0.12;
     }
   }
 

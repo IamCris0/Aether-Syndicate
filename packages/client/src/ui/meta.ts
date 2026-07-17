@@ -138,6 +138,7 @@ function renderBattlepass(profile: PlayerProfile, onSave: () => void): void {
 
 function rewardIcon(r: BattlePassReward): string {
   if (r.type === 'crosshair') return `<span class="bp-reward dot" style="background:${r.value}"></span>`;
+  if (r.type === 'skin') return `<span class="bp-reward dot skin" style="background:${r.value}"></span>`;
   if (r.type === 'emblem') return `<span class="bp-reward">${r.value}</span>`;
   return '<span class="bp-reward">Aa</span>';
 }
@@ -146,5 +147,6 @@ function equipReward(profile: PlayerProfile, r: BattlePassReward): void {
   if (r.type === 'title') profile.equippedTitle = r.value;
   if (r.type === 'crosshair') profile.equippedCrosshair = r.value;
   if (r.type === 'emblem') profile.equippedEmblem = r.value;
+  if (r.type === 'skin') profile.equippedSkin = r.id;
   applyCosmetics(profile);
 }

@@ -41,7 +41,7 @@ export const BP_XP_PER_TIER = 1000;
 export const bpTierFromXp = (bpXp: number): number =>
   Math.min(Math.floor(bpXp / BP_XP_PER_TIER), BATTLEPASS_TIERS);
 
-export type RewardType = 'title' | 'crosshair' | 'emblem';
+export type RewardType = 'title' | 'crosshair' | 'emblem' | 'skin';
 
 export interface BattlePassReward {
   tier: number;
@@ -62,19 +62,24 @@ export const BATTLEPASS_REWARDS: BattlePassReward[] = [
   R(1, 'title', 'title-recruit', 'Recluta', 'Recluta'),
   R(5, 'crosshair', 'ch-aether', 'Retícula Aether', '#38e0c8'),
   R(10, 'title', 'title-syndicate', 'Recluta del Sindicato', 'Recluta del Sindicato'),
+  R(12, 'skin', 'skin-ember', 'Camuflaje Ámbar', '#ff7733'),
   R(15, 'crosshair', 'ch-gold', 'Retícula Dorada', '#ffd24a'),
   R(20, 'emblem', 'em-diamond', 'Emblema Etherium', '◆'),
   R(25, 'title', 'title-gravbreaker', 'Rompegravedad', 'Rompegravedad'),
+  R(28, 'skin', 'skin-crimson', 'Camuflaje Carmesí', '#ff4d5e'),
   R(30, 'crosshair', 'ch-crimson', 'Retícula Carmesí', '#ff4d5e'),
   R(35, 'emblem', 'em-hex', 'Emblema Hexágono', '⬡'),
   R(40, 'title', 'title-orbital', 'Veterano Orbital', 'Veterano Orbital'),
   R(45, 'crosshair', 'ch-violet', 'Retícula Violeta', '#a97fff'),
+  R(48, 'skin', 'skin-gold', 'Camuflaje Dorado', '#ffd24a'),
   R(50, 'emblem', 'em-star', 'Emblema Estelar', '✦'),
   R(55, 'title', 'title-etherium', 'Agente de Etherium', 'Agente de Etherium'),
   R(60, 'crosshair', 'ch-mint', 'Retícula Menta', '#7dffb2'),
+  R(68, 'skin', 'skin-violet', 'Camuflaje Violeta', '#a97fff'),
   R(70, 'title', 'title-gravlord', 'Señor de la Gravedad', 'Señor de la Gravedad'),
   R(75, 'emblem', 'em-comet', 'Emblema Cometa', '☄'),
   R(80, 'crosshair', 'ch-ember', 'Retícula Ámbar', '#ff9d3c'),
+  R(88, 'skin', 'skin-arctic', 'Camuflaje Ártico', '#d8e2ee'),
   R(90, 'title', 'title-voidlegend', 'Leyenda del Vacío', 'Leyenda del Vacío'),
   R(100, 'title', 'title-prime', 'AETHER PRIME', 'AETHER PRIME'),
 ];

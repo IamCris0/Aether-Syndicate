@@ -41,8 +41,8 @@ html, body {
   background:
     radial-gradient(ellipse at 30% 20%, rgba(95, 140, 255, 0.12), transparent 60%),
     radial-gradient(ellipse at 70% 80%, rgba(56, 224, 200, 0.10), transparent 60%),
-    linear-gradient(rgba(4, 7, 15, 0.72), rgba(4, 7, 15, 0.88)),
-    url('/assets/skyboxes/nebula-01.jpg') center / cover no-repeat,
+    linear-gradient(rgba(4, 7, 15, 0.5), rgba(4, 7, 15, 0.8)),
+    url('/assets/keyart-login.jpg') center / cover no-repeat,
     var(--bg);
 }
 
@@ -234,6 +234,7 @@ input:focus, select:focus { border-color: var(--accent); }
 .bp-cell.claimable { border-color: var(--accent); cursor: pointer; box-shadow: 0 0 8px rgba(56, 224, 200, 0.35); animation: bp-pulse 1.2s infinite alternate; }
 .bp-cell.claimed { border-color: rgba(56, 224, 200, 0.6); background: rgba(56, 224, 200, 0.08); cursor: pointer; }
 .bp-reward.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.bp-reward.dot.skin { border-radius: 3px; transform: rotate(45deg); border: 1px solid rgba(255,255,255,0.4); }
 .bp-empty { color: var(--muted); }
 @keyframes bp-pulse { from { box-shadow: 0 0 4px rgba(56,224,200,0.2); } to { box-shadow: 0 0 10px rgba(56,224,200,0.5); } }
 

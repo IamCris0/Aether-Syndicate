@@ -20,6 +20,8 @@ export interface PlayerProfile {
   equippedTitle: string | null;
   equippedCrosshair: string | null;
   equippedEmblem: string | null;
+  /** Skin de arma equipada (id de recompensa del pase). */
+  equippedSkin: string | null;
   /** Arma primaria elegida en la armería. */
   loadoutPrimary: string;
   stats: {
@@ -40,6 +42,7 @@ export const DEFAULT_PROFILE: PlayerProfile = {
   equippedTitle: null,
   equippedCrosshair: null,
   equippedEmblem: null,
+  equippedSkin: null,
   loadoutPrimary: 'ar-vanguard',
   stats: { kills: 0, deaths: 0, assists: 0, wins: 0, matches: 0 },
 };

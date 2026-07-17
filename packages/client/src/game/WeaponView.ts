@@ -3,10 +3,11 @@ import { getWeapon, type WeaponDef } from '@aether/shared';
 
 /**
  * Viewmodel del arma en primera persona — Armas 2.0.
- * Cada arma tiene su PROPIO modelo procedural (no por clase): cuerpo, cañón,
- * cargador, culata, mira, bombeo o tambor según su ficha. Todo data-driven:
- * añadir un arma nueva = añadir su entrada en VIEW_CONFIGS (o hereda la de
- * su clase). Bob, retroceso, ADS, fogonazo y trazadoras incluidos.
+ *  - Modelo procedural POR ARMA (cuerpo, cañón, cargador, culata, miras…).
+ *  - MANOS/BRAZOS del operador sujetando el arma.
+ *  - Animaciones procedurales: recarga, cambio de arma y tajo de cuchillo.
+ *  - SKINS (camuflajes) del pase de batalla: cambian los materiales.
+ *  - Bob, sway, retroceso, ADS, fogonazo y trazadoras.
  */
 
 interface ViewCfg {
@@ -39,14 +40,43 @@ const VIEW_CONFIGS: Record<string, Partial<ViewCfg>> = {
   'knife-fang': { blade: true, mag: 'none', stock: false, sight: 'none', barrelL: 0, grip: false },
 };
 
-const MAT = {
-  body: new THREE.MeshStandardMaterial({ color: 0x232d40, roughness: 0.4, metalness: 0.85 }),
-  dark: new THREE.MeshStandardMaterial({ color: 0x11161f, roughness: 0.55, metalness: 0.7 }),
-  glow: new THREE.MeshStandardMaterial({
-    color: 0x38e0c8, emissive: 0x38e0c8, emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.5,
-  }),
-  blade: new THREE.MeshStandardMaterial({ color: 0xb9c6d8, roughness: 0.25, metalness: 1 }),
+/** Skins/camuflajes desbloqueables en el pase de batalla. */
+export interface WeaponSkin {
+  name: string;
+  body: number;
+  glow: number;
+}
+
+export const WEAPON_SKINS: Record<string, WeaponSkin> = {
+  default: { name: 'Estándar', body: 0x232d40, glow: 0x38e0c8 },
+  'skin-ember': { name: 'Camuflaje Ámbar', body: 0x3a2418, glow: 0xff7733 },
+  'skin-crimson': { name: 'Camuflaje Carmesí', body: 0x3a1520, glow: 0xff4d5e },
+  'skin-gold': { name: 'Camuflaje Dorado', body: 0x3a3014, glow: 0xffd24a },
+  'skin-violet': { name: 'Camuflaje Violeta', body: 0x241538, glow: 0xa97fff },
+  'skin-arctic': { name: 'Camuflaje Ártico', body: 0x9fb2c8, glow: 0xffffff },
 };
+
+interface Mats {
+  body: THREE.MeshStandardMaterial;
+  dark: THREE.MeshStandardMaterial;
+  glow: THREE.MeshStandardMaterial;
+  blade: THREE.MeshStandardMaterial;
+  armor: THREE.MeshStandardMaterial;
+  glove: THREE.MeshStandardMaterial;
+}
+
+function makeMats(skin: WeaponSkin): Mats {
+  return {
+    body: new THREE.MeshStandardMaterial({ color: skin.body, roughness: 0.4, metalness: 0.85 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x11161f, roughness: 0.55, metalness: 0.7 }),
+    glow: new THREE.MeshStandardMaterial({
+      color: skin.glow, emissive: skin.glow, emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.5,
+    }),
+    blade: new THREE.MeshStandardMaterial({ color: 0xb9c6d8, roughness: 0.25, metalness: 1 }),
+    armor: new THREE.MeshStandardMaterial({ color: 0x2c3a52, roughness: 0.55, metalness: 0.6 }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x161c28, roughness: 0.8, metalness: 0.2 }),
+  };
+}
 
 export class WeaponView {
   readonly group = new THREE.Group();
@@ -60,9 +90,16 @@ export class WeaponView {
   private ads = 0;
   private adsTarget = 0;
   private currentWeaponId = '';
+  private skinId = 'default';
   private tracers: Array<{ line: THREE.Line; life: number }> = [];
   private swayX = 0;
   private swayY = 0;
+
+  // Animaciones procedurales (0 = reposo).
+  private reloadAnim = 0;
+  private reloadTarget = 0;
+  private switchAnim = 0;
+  private meleeSwing = 0;
 
   constructor(camera: THREE.Camera) {
     this.muzzleFlash = new THREE.PointLight(0xffc866, 0, 4, 2);
@@ -77,12 +114,26 @@ export class WeaponView {
 
   setWeapon(weaponId: string): void {
     if (weaponId === this.currentWeaponId) return;
+    const isFirst = this.currentWeaponId === '';
     this.currentWeaponId = weaponId;
+    this.rebuild();
+    if (!isFirst) this.switchAnim = 1; // animación de desenfundado
+  }
+
+  /** Aplica una skin del pase de batalla y reconstruye el modelo. */
+  setSkin(skinId: string | null): void {
+    const id = skinId && WEAPON_SKINS[skinId] ? skinId : 'default';
+    if (id === this.skinId) return;
+    this.skinId = id;
+    if (this.currentWeaponId) this.rebuild();
+  }
+
+  private rebuild(): void {
     this.group.remove(this.model);
-    this.model = buildWeaponModel(getWeapon(weaponId));
+    this.model = buildWeaponModel(getWeapon(this.currentWeaponId), WEAPON_SKINS[this.skinId]);
     this.group.add(this.model);
 
-    const cfg = { ...BASE, ...VIEW_CONFIGS[weaponId] };
+    const cfg = { ...BASE, ...VIEW_CONFIGS[this.currentWeaponId] };
     const muzzleZ = -(cfg.bodyL / 2 + cfg.barrelL + 0.02);
     this.muzzleFlash.position.set(0, 0.02, muzzleZ);
     this.flashPlane.position.set(0, 0.02, muzzleZ - 0.01);
@@ -96,8 +147,16 @@ export class WeaponView {
     return this.ads;
   }
 
+  setReloading(reloading: boolean): void {
+    this.reloadTarget = reloading ? 1 : 0;
+  }
+
   onShotFired(): void {
     const def = getWeapon(this.currentWeaponId);
+    if (def.class === 'melee') {
+      this.meleeSwing = 1;
+      return;
+    }
     this.recoilKick = Math.min(this.recoilKick + 0.045 + def.recoil.vertical * 2, 0.13);
     this.muzzleFlash.intensity = 30;
     (this.flashPlane.material as THREE.MeshBasicMaterial).opacity = 0.9;
@@ -140,6 +199,30 @@ export class WeaponView {
     this.group.rotation.x = this.recoilKick * 1.6 + this.swayY * 2;
     this.group.rotation.z = this.swayX * 1.5;
 
+    // ---- Animaciones procedurales sobre el modelo interno ----
+    this.reloadAnim += (this.reloadTarget - this.reloadAnim) * Math.min(dt * 6, 1);
+    this.switchAnim = Math.max(0, this.switchAnim - dt * 3.2);
+    this.meleeSwing = Math.max(0, this.meleeSwing - dt * 4.5);
+
+    // Recarga: el arma baja, se inclina y "trastea" (wobble).
+    const reloadWobble = Math.sin(performance.now() / 90) * 0.03 * this.reloadAnim;
+    // Cambio de arma: sube desde abajo.
+    const switchDrop = this.switchAnim * this.switchAnim;
+    // Tajo de cuchillo: arco rápido con pico a mitad de recorrido.
+    const swingArc = Math.sin((1 - this.meleeSwing) * Math.PI) * (this.meleeSwing > 0 ? 1 : 0);
+
+    this.model.position.set(
+      0,
+      -this.reloadAnim * 0.09 - switchDrop * 0.26,
+      -swingArc * 0.26,
+    );
+    this.model.rotation.set(
+      this.reloadAnim * 0.7 + switchDrop * 0.9 - swingArc * 0.9 + reloadWobble,
+      0,
+      reloadWobble * 1.5 - swingArc * 0.35,
+    );
+
+    // Trazadoras.
     for (let i = this.tracers.length - 1; i >= 0; i--) {
       const t = this.tracers[i];
       t.life -= dt;
@@ -153,72 +236,78 @@ export class WeaponView {
   }
 }
 
-/** Construye el modelo 3D de un arma a partir de su configuración. */
-function buildWeaponModel(def: WeaponDef): THREE.Group {
+/** Construye el modelo 3D de un arma (con manos del operador) según su ficha. */
+function buildWeaponModel(def: WeaponDef, skin: WeaponSkin): THREE.Group {
   const cfg = { ...BASE, ...VIEW_CONFIGS[def.id] };
+  const m = makeMats(skin);
   const g = new THREE.Group();
-  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0): THREE.Mesh => {
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(x, y, z);
-    m.rotation.x = rx;
-    g.add(m);
-    return m;
+  const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rx = 0, rz = 0): THREE.Mesh => {
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = rx;
+    mesh.rotation.z = rz;
+    g.add(mesh);
+    return mesh;
   };
 
   if (cfg.blade) {
-    // Cuchillo: hoja + guarda + mango.
-    add(new THREE.BoxGeometry(0.012, 0.045, 0.26), MAT.blade, 0, 0.02, -0.2);
-    add(new THREE.BoxGeometry(0.05, 0.06, 0.02), MAT.dark, 0, 0, -0.07);
-    add(new THREE.BoxGeometry(0.035, 0.05, 0.12), MAT.body, 0, -0.01, 0);
+    add(new THREE.BoxGeometry(0.012, 0.045, 0.26), m.blade, 0, 0.02, -0.2);
+    add(new THREE.BoxGeometry(0.05, 0.06, 0.02), m.dark, 0, 0, -0.07);
+    add(new THREE.BoxGeometry(0.035, 0.05, 0.12), m.body, 0, -0.01, 0);
+    addArm(g, m, 'right', 0.02, -0.06, 0.1);
     return g;
   }
 
-  // Cuerpo y franja emisiva de la corporación.
-  add(new THREE.BoxGeometry(cfg.bodyW, cfg.bodyH, cfg.bodyL), MAT.body, 0, 0, 0);
-  add(new THREE.BoxGeometry(cfg.bodyW + 0.004, 0.014, cfg.bodyL * 0.4), MAT.glow, 0, 0.01, -cfg.bodyL * 0.1);
+  add(new THREE.BoxGeometry(cfg.bodyW, cfg.bodyH, cfg.bodyL), m.body, 0, 0, 0);
+  add(new THREE.BoxGeometry(cfg.bodyW + 0.004, 0.014, cfg.bodyL * 0.4), m.glow, 0, 0.01, -cfg.bodyL * 0.1);
 
-  // Cañón.
   if (cfg.barrelL > 0) {
-    const barrel = new THREE.Mesh(
-      new THREE.CylinderGeometry(cfg.barrelR, cfg.barrelR, cfg.barrelL, 10),
-      MAT.dark,
-    );
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(cfg.barrelR, cfg.barrelR, cfg.barrelL, 10), m.dark);
     barrel.rotation.x = Math.PI / 2;
     barrel.position.set(0, 0.02, -(cfg.bodyL / 2 + cfg.barrelL / 2));
     g.add(barrel);
   }
 
-  // Empuñadura y gatillo.
-  if (cfg.grip) add(new THREE.BoxGeometry(0.035, 0.11, 0.05), MAT.dark, 0, -cfg.bodyH / 2 - 0.045, cfg.bodyL * 0.18);
+  if (cfg.grip) add(new THREE.BoxGeometry(0.035, 0.11, 0.05), m.dark, 0, -cfg.bodyH / 2 - 0.045, cfg.bodyL * 0.18);
 
-  // Cargador.
   if (cfg.mag === 'straight') {
-    const mag = add(new THREE.BoxGeometry(0.035, 0.14, 0.06), MAT.dark, 0, -cfg.bodyH / 2 - 0.06, -cfg.bodyL * 0.1);
-    mag.rotation.x = 0.15;
+    add(new THREE.BoxGeometry(0.035, 0.14, 0.06), m.dark, 0, -cfg.bodyH / 2 - 0.06, -cfg.bodyL * 0.1, 0.15);
   } else if (cfg.mag === 'drum') {
-    add(new THREE.BoxGeometry(0.09, 0.12, 0.12), MAT.dark, 0, -cfg.bodyH / 2 - 0.06, -cfg.bodyL * 0.05);
+    add(new THREE.BoxGeometry(0.09, 0.12, 0.12), m.dark, 0, -cfg.bodyH / 2 - 0.06, -cfg.bodyL * 0.05);
   }
 
-  // Culata.
-  if (cfg.stock) add(new THREE.BoxGeometry(cfg.bodyW * 0.8, cfg.bodyH * 0.75, 0.16), MAT.dark, 0, -0.01, cfg.bodyL / 2 + 0.08);
+  if (cfg.stock) add(new THREE.BoxGeometry(cfg.bodyW * 0.8, cfg.bodyH * 0.75, 0.16), m.dark, 0, -0.01, cfg.bodyL / 2 + 0.08);
 
-  // Miras.
   if (cfg.sight === 'iron') {
-    add(new THREE.BoxGeometry(0.008, 0.025, 0.008), MAT.dark, 0, cfg.bodyH / 2 + 0.012, -cfg.bodyL * 0.42);
-    add(new THREE.BoxGeometry(0.02, 0.02, 0.008), MAT.dark, 0, cfg.bodyH / 2 + 0.01, cfg.bodyL * 0.35);
+    add(new THREE.BoxGeometry(0.008, 0.025, 0.008), m.dark, 0, cfg.bodyH / 2 + 0.012, -cfg.bodyL * 0.42);
+    add(new THREE.BoxGeometry(0.02, 0.02, 0.008), m.dark, 0, cfg.bodyH / 2 + 0.01, cfg.bodyL * 0.35);
   } else if (cfg.sight === 'holo') {
-    add(new THREE.BoxGeometry(0.04, 0.035, 0.05), MAT.dark, 0, cfg.bodyH / 2 + 0.025, -cfg.bodyL * 0.1);
-    add(new THREE.BoxGeometry(0.028, 0.022, 0.004), MAT.glow, 0, cfg.bodyH / 2 + 0.028, -cfg.bodyL * 0.1 - 0.024);
+    add(new THREE.BoxGeometry(0.04, 0.035, 0.05), m.dark, 0, cfg.bodyH / 2 + 0.025, -cfg.bodyL * 0.1);
+    add(new THREE.BoxGeometry(0.028, 0.022, 0.004), m.glow, 0, cfg.bodyH / 2 + 0.028, -cfg.bodyL * 0.1 - 0.024);
   } else if (cfg.sight === 'sniper') {
-    const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.2, 12), MAT.dark);
+    const scope = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.2, 12), m.dark);
     scope.rotation.x = Math.PI / 2;
     scope.position.set(0, cfg.bodyH / 2 + 0.04, -cfg.bodyL * 0.08);
     g.add(scope);
-    add(new THREE.BoxGeometry(0.012, 0.03, 0.012), MAT.body, 0, cfg.bodyH / 2 + 0.015, -cfg.bodyL * 0.08);
+    add(new THREE.BoxGeometry(0.012, 0.03, 0.012), m.body, 0, cfg.bodyH / 2 + 0.015, -cfg.bodyL * 0.08);
   }
 
-  // Bombeo (escopeta).
-  if (cfg.pump) add(new THREE.BoxGeometry(0.05, 0.045, 0.14), MAT.body, 0, -0.03, -(cfg.bodyL / 2 + cfg.barrelL * 0.45));
+  if (cfg.pump) add(new THREE.BoxGeometry(0.05, 0.045, 0.14), m.body, 0, -0.03, -(cfg.bodyL / 2 + cfg.barrelL * 0.45));
+
+  // Manos: derecha en la empuñadura, izquierda en el guardamanos/bombeo.
+  addArm(g, m, 'right', 0.015, -cfg.bodyH / 2 - 0.05, cfg.bodyL * 0.2);
+  addArm(g, m, 'left', -0.02, -cfg.bodyH / 2 - 0.03, cfg.pump ? -(cfg.bodyL / 2 + cfg.barrelL * 0.45) : -cfg.bodyL * 0.28);
 
   return g;
+}
+
+/** Antebrazo + guante del operador, orientado desde fuera de cámara al agarre. */
+function addArm(g: THREE.Group, m: Mats, side: 'left' | 'right', x: number, y: number, z: number): void {
+  const s = side === 'right' ? 1 : -1;
+  const hand = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.05, 0.07), m.glove);
+  hand.position.set(x, y, z);
+  const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.06, 0.24), m.armor);
+  forearm.position.set(x + s * 0.07, y - 0.08, z + 0.16);
+  forearm.rotation.set(-0.5, s * 0.35, 0);
+  g.add(hand, forearm);
 }

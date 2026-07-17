@@ -106,7 +106,9 @@ async function startGame(join: () => Promise<Awaited<ReturnType<Connection['matc
   closeAllModals();
   lobbyScene?.stop();
 
-  game = new GameClient(canvas, connection, input, res.mapId, res.mode, settings, audio);
+  game = new GameClient(canvas, connection, input, res.mapId, res.mode, settings, audio, {
+    skinId: profile.equippedSkin,
+  });
   game.onXpBanked = (result) => {
     bankMatchResult(profile, result);
     persistProfile();

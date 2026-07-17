@@ -50,6 +50,7 @@ export function fireHitscan(
   now: number,
   rng: () => number,
   aiming = false,
+  eyeSign = 1,
 ): ShotResult {
   const events: GameEvent[] = [];
   const hits: ShotResult['hits'] = [];
@@ -58,7 +59,7 @@ export function fireHitscan(
   const rewindTime = now - rewindMs;
 
   const eye = clone(shooter.move.pos);
-  eye.y += shooter.move.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT;
+  eye.y += (shooter.move.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT) * eyeSign;
 
   const spread = aiming ? weapon.spreadAds : weapon.spread;
   for (let p = 0; p < weapon.pellets; p++) {
@@ -127,12 +128,13 @@ export function fireMelee(
   shooter: PlayerEntity,
   targets: PlayerEntity[],
   weapon: WeaponDef,
+  eyeSign = 1,
 ): ShotResult {
   const events: GameEvent[] = [];
   const hits: ShotResult['hits'] = [];
   const dir = viewDirection(vec3(), shooter.yaw, shooter.pitch);
   const eye = clone(shooter.move.pos);
-  eye.y += PLAYER_EYE_HEIGHT;
+  eye.y += PLAYER_EYE_HEIGHT * eyeSign;
 
   for (const target of targets) {
     if (target.id === shooter.id || !target.alive) continue;

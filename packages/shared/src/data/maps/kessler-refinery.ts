@@ -79,6 +79,9 @@ const gravityZones: GravityZone[] = [
   { id: 'lift-east', kind: 'zero', min: vec3(31, 0, 16), max: vec3(35, 10.5, 19), priority: 10 },
   // El foso: gravedad baja — saltos flotados para cruzarlo, caída lenta y dramática.
   { id: 'molten-trench', kind: 'low', min: vec3(-30, -5, -3), max: vec3(30, 4, 3), priority: 5 },
+  // EL CANAL INVERTIDO: corredor sur donde la gravedad se invierte — caes al
+  // techo y avanzas boca abajo. Ruta de flanqueo experimental del diferenciador.
+  { id: 'inverted-canal', kind: 'inverted', min: vec3(-14, 0, 19.5), max: vec3(14, 14, 22), priority: 8 },
 ];
 
 const S = (x: number, y: number, z: number, yaw: number, team: 0 | 1 | 2): SpawnPoint => ({

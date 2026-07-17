@@ -88,6 +88,14 @@ export class GameClient {
   private lastFrameYaw = 0;
   private lastFramePitch = 0;
 
+  // Gravedad invertida: 0 = normal, 1 = invertida (interpolado para el roll).
+  private gravityFlip = 0;
+
+  // Sonidos de movimiento y arma.
+  private stepDistance = 0;
+  private prevReloading = false;
+  private prevWeaponId = '';
+
   // Granadas y explosiones.
   private grenadeMeshes = new Map<number, THREE.Mesh>();
   private grenadeGeo = new THREE.SphereGeometry(0.14, 10, 10);
@@ -118,6 +126,7 @@ export class GameClient {
     mode: GameModeId,
     settings: { fov: number; sensitivity: number; volume: number },
     audio?: AudioManager,
+    cosmetics?: { skinId: string | null },
   ) {
     this.baseFov = settings.fov;
     this.baseSensitivity = settings.sensitivity;
@@ -150,7 +159,9 @@ export class GameClient {
     });
 
     this.world = new World(map);
+    this.avatars.gravityZones = map.gravityZones;
     this.weaponView = new WeaponView(this.camera);
+    this.weaponView.setSkin(cosmetics?.skinId ?? null);
     this.scene.add(this.world.group, this.avatars.group, this.weaponView.tracerGroup);
 
     window.addEventListener('resize', this.onResize);
@@ -258,8 +269,21 @@ export class GameClient {
       buttons: sampled.buttons,
       weaponSlot: sampled.weaponSlot,
     };
+    // Gravedad invertida: el strafe se invierte para que coincida con la pantalla.
+    if (this.gravityFlip > 0.5) cmd.moveX = -cmd.moveX;
+
     stepMovement(this.predicted, cmd, this.moveCtx);
     this.connection.sendInput(cmd);
+
+    // Pasos: cada ~2.3 m recorridos en el suelo suena una pisada.
+    const speed = Math.hypot(this.predicted.vel.x, this.predicted.vel.z);
+    if (this.predicted.onGround && speed > 1.5) {
+      this.stepDistance += speed * INPUT_DT;
+      if (this.stepDistance > 2.3) {
+        this.stepDistance = 0;
+        this.audio.playFootstep();
+      }
+    }
   }
 
   /**
@@ -280,7 +304,7 @@ export class GameClient {
       if (weapon.class !== 'melee') this.predAmmo--;
 
       this.weaponView.onShotFired();
-      this.audio.playShot(0, weapon.class === 'sniper' || weapon.class === 'shotgun');
+      this.audio.playShot(weapon.class, 0);
 
       // Retroceso por PATRÓN: los primeros disparos suben más, el drift
       // horizontal alterna de forma predecible (aprendible) y ADS lo reduce.
@@ -338,6 +362,15 @@ export class GameClient {
         // Resincronizar la predicción de disparo con la autoridad.
         this.predAmmo = snap.self.ammo;
         this.predGrenades = snap.self.grenades;
+
+        // Sonido + animación de recarga (flanco) y cambio de arma.
+        if (snap.self.reloading && !this.prevReloading) this.audio.playReload();
+        this.prevReloading = snap.self.reloading;
+        this.weaponView.setReloading(snap.self.reloading);
+        if (snap.self.weaponId !== this.prevWeaponId) {
+          if (this.prevWeaponId) this.audio.playSwitch();
+          this.prevWeaponId = snap.self.weaponId;
+        }
       }
       this.hud.updateMatch(snap, this.modeDef.teams, selfId);
       this.hud.setGravity(gravityKindAt(this.moveCtx.gravityZones, this.predicted.pos));
@@ -447,7 +480,8 @@ export class GameClient {
           }
         } else {
           const dist = this.me ? from.distanceTo(new THREE.Vector3(this.me.pos.x, this.me.pos.y, this.me.pos.z)) : 30;
-          this.audio.playShot(dist);
+          const shooter = snap.players.find((p) => p.id === ev.shooterId);
+          this.audio.playShot(getWeapon(shooter?.weaponId ?? '').class, dist);
         }
         this.weaponView.addTracer(from, to, ev.hit);
         break;
@@ -559,7 +593,14 @@ export class GameClient {
   }
 
   private updateCamera(dt: number): void {
-    const eyeY = this.predicted.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT;
+    // Gravedad invertida: la cámara rueda 180º, el ojo pasa a estar "debajo"
+    // del centro y el ratón se invierte para que la pantalla siga siendo natural.
+    const inverted = gravityKindAt(this.moveCtx.gravityZones, this.predicted.pos) === 'inverted';
+    this.gravityFlip += ((inverted ? 1 : 0) - this.gravityFlip) * Math.min(dt * 5, 1);
+    this.input.invertLook = this.gravityFlip > 0.5;
+
+    const eyeSign = 1 - 2 * this.gravityFlip;
+    const eyeY = (this.predicted.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT) * eyeSign;
     this.camera.position.set(this.predicted.pos.x, this.predicted.pos.y + eyeY, this.predicted.pos.z);
 
     // Dip de aterrizaje: la cámara se hunde según la velocidad de caída.
@@ -567,6 +608,7 @@ export class GameClient {
       this.airMinVelY = Math.min(this.airMinVelY, this.predicted.vel.y);
     } else if (!this.prevOnGround && this.airMinVelY < -7) {
       this.landDip = Math.min(0.34, -this.airMinVelY * 0.018);
+      this.audio.playLand(Math.min(1, -this.airMinVelY / 18));
     }
     if (this.predicted.onGround) this.airMinVelY = 0;
     this.prevOnGround = this.predicted.onGround;
@@ -589,7 +631,7 @@ export class GameClient {
     this.camera.rotation.set(0, 0, 0);
     this.camera.rotateY(this.input.yaw);
     this.camera.rotateX(this.input.pitch);
-    this.camera.rotateZ(this.viewRoll);
+    this.camera.rotateZ(this.viewRoll + Math.PI * this.gravityFlip);
 
     // FOV: zoom al apuntar (francotirador con más aumento) + dinámico con velocidad.
     const weapon = getWeapon(this.lastSnapshot?.self?.weaponId ?? '');
