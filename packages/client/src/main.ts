@@ -7,6 +7,8 @@ import { AudioManager } from './audio/AudioManager.js';
 import { loadSettings, saveSettings, type PlayerSettings } from './persistence/storage.js';
 import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
+import { getSupabase } from './services/supabase.js';
+import { fetchCloudProfile, pushCloudProfile, resolveProfiles } from './persistence/cloudSync.js';
 import { applyCosmetics, openArmory, openBattlepass, openMissions, openOperators, renderLobbyCard } from './ui/meta.js';
 import { getOperator } from '@aether/shared';
 import { LobbyScene } from './lobby/LobbyScene.js';
@@ -34,8 +36,12 @@ const joinExtra = (): JoinExtra => ({
   operatorId: profile.equippedOperator,
 });
 
+/** Id de usuario Supabase cuando hay sesión (null = invitado local). */
+let cloudUserId: string | null = null;
+
 const persistProfile = (): void => {
   void saveProfile(profile);
+  if (cloudUserId) pushCloudProfile(cloudUserId, profile);
   renderLobbyCard(profile, settings.name);
 };
 
@@ -67,6 +73,56 @@ async function init(): Promise<void> {
   nameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('btn-guest').click();
   });
+
+  await initCloudAuth();
+}
+
+/** Login con Google vía Supabase + restauración de sesión y perfil en nube. */
+async function initCloudAuth(): Promise<void> {
+  const supa = getSupabase();
+  const googleBtn = $('btn-google') as HTMLButtonElement;
+  if (!supa) return; // sin .env: el botón queda deshabilitado
+
+  googleBtn.disabled = false;
+  googleBtn.textContent = 'INICIAR SESIÓN CON GOOGLE';
+  googleBtn.title = '';
+  googleBtn.addEventListener('click', () => {
+    void supa.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+  });
+
+  // Sesión ya activa (o recién vuelta del redirect de OAuth).
+  const { data } = await supa.auth.getSession();
+  if (data.session) await onCloudSignIn(data.session.user.id, data.session.user);
+  supa.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session && cloudUserId !== session.user.id) {
+      void onCloudSignIn(session.user.id, session.user);
+    }
+  });
+}
+
+async function onCloudSignIn(userId: string, user: { user_metadata?: Record<string, unknown>; email?: string }): Promise<void> {
+  cloudUserId = userId;
+
+  // Nombre: el local manda si ya existe; si no, el de Google.
+  if (!settings.name) {
+    const meta = user.user_metadata ?? {};
+    settings.name = String(meta.full_name ?? meta.name ?? user.email?.split('@')[0] ?? 'Operador').slice(0, 20);
+    await saveSettings(settings);
+  }
+
+  // Perfil: gana el de mayor progreso (bpXp) y se re-sincronizan ambos lados.
+  const cloud = await fetchCloudProfile(userId);
+  profile = resolveProfiles(profile, cloud);
+  profile.userId = userId;
+  applyCosmetics(profile);
+  persistProfile();
+
+  setStatus('');
+  enterLobby();
+  $('lobby-status').textContent = `Sesión iniciada — perfil sincronizado con la nube`;
 }
 
 let lobbyScene: LobbyScene | null = null;
