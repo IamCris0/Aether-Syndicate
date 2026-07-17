@@ -35,9 +35,32 @@ Dashboard de Supabase → **Authentication → URL Configuration**:
 
 Cada `git push` a `main` redespliega automáticamente.
 
-## Alternativa: cliente y servidor separados
+## Opción B: cliente en Vercel + servidor en Render
 
-Si más adelante quieres el cliente en CDN (Vercel/Netlify/Cloudflare Pages):
-publica `packages/client/dist` como sitio estático con la variable
-`VITE_SERVER_URL=https://TU-SERVIDOR` y despliega solo el servidor en Render.
-El código ya lo soporta sin cambios.
+Vercel es serverless: **no puede alojar el servidor del juego** (WebSockets
+persistentes), pero sirve el cliente desde su CDN global — más rápido y con
+mejor URL. El repo ya incluye `vercel.json` con todo configurado.
+
+1. Despliega primero el servidor en Render (pasos de arriba). Apunta la URL,
+   p. ej. `https://aether-syndicate.onrender.com`.
+2. En https://vercel.com → **Add New → Project** → importa tu repo de GitHub.
+   Vercel detecta `vercel.json` (build del cliente + carpeta de salida).
+3. Antes del deploy, en **Environment Variables** añade las tres:
+   | Variable | Valor |
+   |---|---|
+   | `VITE_SERVER_URL` | `https://TU-APP.onrender.com` (tu servidor Render) |
+   | `VITE_SUPABASE_URL` | `https://dedoiaptbvknnfidqrko.supabase.co` |
+   | `VITE_SUPABASE_ANON_KEY` | (tu anon key) |
+4. **Deploy**. Tu enlace queda en `https://TU-PROYECTO.vercel.app`.
+5. En Supabase → Authentication → URL Configuration, añade también la URL
+   de Vercel a las **Redirect URLs** (y como Site URL si será la principal).
+
+Puedes tener AMBAS URLs vivas a la vez apuntando al mismo servidor de
+Render: la de Vercel como principal (rápida, sin sleep del cliente) y la de
+Render como respaldo todo-en-uno. Nota: aunque el cliente cargue al
+instante desde Vercel, la PRIMERA partida tras 15 min de inactividad
+seguirá esperando ~30-60 s a que el servidor de Render despierte.
+
+Netlify y Cloudflare Pages funcionan igual: build
+`npm run build -w @aether/client`, salida `packages/client/dist` y las
+mismas tres variables de entorno.
