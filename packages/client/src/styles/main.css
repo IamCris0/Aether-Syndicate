@@ -380,6 +380,46 @@ input:focus, select:focus { border-color: var(--accent); }
   opacity: 0; transition: opacity 0.4s;
 }
 .damage-vignette.show { opacity: 1; transition: opacity 0.05s; }
+/* Vida baja: pulso persistente que respira con el latido. */
+.damage-vignette.lowhp { animation: lowhp-pulse 1s ease-in-out infinite; }
+@keyframes lowhp-pulse {
+  0%, 100% { opacity: 0.35; }
+  18% { opacity: 0.75; }
+  36% { opacity: 0.45; }
+}
+
+.shield-vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(80, 210, 255, 0.5) 100%);
+  opacity: 0;
+}
+.shield-vignette.show { animation: shield-break 0.45s ease-out; }
+@keyframes shield-break {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Cuñas direccionales de daño: orbitan el crosshair apuntando al atacante. */
+.damage-dirs { position: absolute; inset: 0; pointer-events: none; }
+.damage-dir {
+  position: absolute; left: 50%; top: 50%;
+  width: 0; height: 0;
+  transform: rotate(var(--dir, 0deg));
+  animation: dmgdir-fade 0.9s ease-out forwards;
+}
+.damage-dir::before {
+  content: '';
+  position: absolute; left: -30px; top: -96px;
+  width: 60px; height: 16px;
+  background: linear-gradient(to bottom, rgba(255, 60, 70, 0.95), rgba(255, 60, 70, 0.25));
+  clip-path: polygon(50% 0, 100% 100%, 78% 78%, 50% 62%, 22% 78%, 0 100%);
+  filter: drop-shadow(0 0 6px rgba(255, 40, 60, 0.8));
+}
+@keyframes dmgdir-fade {
+  0% { opacity: 1; scale: 1.15; }
+  60% { opacity: 0.9; scale: 1; }
+  100% { opacity: 0; scale: 1; }
+}
 
 .hud-top {
   position: absolute; top: 18px; left: 50%;

@@ -3,6 +3,7 @@ import {
   Buttons,
   INPUT_DT,
   PLAYER_EYE_HEIGHT,
+  PLAYER_MAX_HEALTH,
   XP_HEADSHOT_BONUS,
   XP_MATCH_COMPLETE,
   XP_MATCH_WIN,
@@ -233,6 +234,7 @@ export class GameClient {
   stop(): void {
     this.bankSession(false, false); // XP parcial si se abandona a mitad
     this.running = false;
+    this.audio.setLowHealth(false);
     if (this.chatKeyListener) document.removeEventListener('keydown', this.chatKeyListener);
     this.input.enabled = true;
     this.hud.hide();
@@ -448,10 +450,20 @@ export class GameClient {
       this.hud.setGravity(gravityKindAt(this.moveCtx.gravityZones, this.predicted.pos));
 
       // Detectar daño recibido comparando snapshots (además del evento).
-      if (prevMe && this.me.health < prevMe.health) {
+      // El escudo también cuenta: absorber daño sin perder vida da feedback.
+      if (prevMe && (this.me.health < prevMe.health || this.me.shield < prevMe.shield)) {
         this.hud.flashDamage();
         this.audio.playDamage();
       }
+
+      // Escudo roto en este snapshot: destello cian + cristal.
+      if (prevMe && prevMe.shield > 0 && this.me.shield <= 0 && this.me.alive) {
+        this.hud.flashShieldBreak();
+        this.audio.playShieldBreak();
+      }
+
+      // Latido de corazón mientras la vida está bajo el 30 %.
+      this.audio.setLowHealth(this.me.alive && this.me.health < PLAYER_MAX_HEALTH * 0.3);
 
       // Asistencias nuevas → XP (se detectan por diferencia entre snapshots).
       if (this.me.assists > this.lastAssists) {
@@ -584,7 +596,23 @@ export class GameClient {
         break;
       }
       case 'damage': {
-        if (ev.attackerId === selfId && ev.headshot) this.hud.flashHitmarker('head');
+        if (ev.attackerId === selfId && ev.headshot) {
+          this.hud.flashHitmarker('head');
+          this.audio.playHit('head');
+        }
+        // Daño recibido: cuña direccional hacia el atacante (relativa a la cámara).
+        if (ev.targetId === selfId && ev.attackerId !== selfId) {
+          const attacker = snap.players.find((p) => p.id === ev.attackerId);
+          if (attacker) {
+            const dx = attacker.pos.x - this.predicted.pos.x;
+            const dz = attacker.pos.z - this.predicted.pos.z;
+            const yaw = this.input.yaw;
+            // Base de cámara: forward = (-sin, -cos), right = (cos, -sin).
+            const fwd = -dx * Math.sin(yaw) - dz * Math.cos(yaw);
+            const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
+            this.hud.showDamageDirection((Math.atan2(right, fwd) * 180) / Math.PI);
+          }
+        }
         break;
       }
       case 'explosion': {

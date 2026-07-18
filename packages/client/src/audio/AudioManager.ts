@@ -162,7 +162,13 @@ export class AudioManager {
     this.blip(720, 0.03, 0.09);
   }
 
-  playHit(): void {
+  /** Confirmación de impacto; el headshot suena en capa aparte (ding agudo). */
+  playHit(kind: 'normal' | 'head' = 'normal'): void {
+    if (kind === 'head') {
+      this.blip(1900, 0.05, 0.28);
+      setTimeout(() => this.blip(2500, 0.08, 0.24), 45);
+      return;
+    }
     this.blip(1600, 0.05, 0.25);
   }
 
@@ -173,6 +179,44 @@ export class AudioManager {
 
   playDamage(): void {
     this.blip(180, 0.15, 0.4);
+  }
+
+  /** Cristal al romperse el escudo: ruido agudo filtrado + caída de tono. */
+  playShieldBreak(): void {
+    if (!this.ctx || !this.master) return;
+    const t = this.ctx.currentTime;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.34, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    const noise = this.noiseSource(0.3);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(2400, t);
+    filter.frequency.exponentialRampToValueAtTime(900, t + 0.25);
+    noise.connect(filter).connect(gain).connect(this.master);
+    noise.start(t);
+    noise.stop(t + 0.3);
+    this.blip(1400, 0.09, 0.2);
+    setTimeout(() => this.blip(700, 0.12, 0.18), 70);
+  }
+
+  // ------------------------------------------------------------ vida baja
+
+  private lowHpTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Latido de corazón mientras la vida está por debajo del umbral. */
+  setLowHealth(active: boolean): void {
+    if (active && !this.lowHpTimer) {
+      const beat = (): void => {
+        this.blip(74, 0.1, 0.34);
+        setTimeout(() => this.blip(60, 0.12, 0.26), 190);
+      };
+      beat();
+      this.lowHpTimer = setInterval(beat, 1000);
+    } else if (!active && this.lowHpTimer) {
+      clearInterval(this.lowHpTimer);
+      this.lowHpTimer = null;
+    }
   }
 
   playThrow(): void {

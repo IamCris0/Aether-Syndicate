@@ -30,6 +30,8 @@ export class Hud {
   private killfeed = $('killfeed');
   private hitmarker = $('hitmarker');
   private vignette = $('damage-vignette');
+  private shieldVignette = $('shield-vignette');
+  private damageDirs = $('damage-dirs');
   private respawnOverlay = $('respawn-overlay');
   private respawnTimer = $('respawn-timer');
   private matchendOverlay = $('matchend-overlay');
@@ -50,6 +52,8 @@ export class Hud {
   hide(): void {
     this.root.classList.add('hidden');
     this.killfeed.innerHTML = '';
+    this.damageDirs.innerHTML = '';
+    this.vignette.classList.remove('lowhp', 'show');
     this.matchendOverlay.classList.add('hidden');
     this.respawnOverlay.classList.add('hidden');
     this.pauseOverlay.classList.add('hidden');
@@ -63,6 +67,8 @@ export class Hud {
   updateSelf(me: PlayerSnapshot, self: SelfState, weaponName: string): void {
     this.barHealth.style.width = `${(Math.max(me.health, 0) / PLAYER_MAX_HEALTH) * 100}%`;
     this.barShield.style.width = `${(Math.max(me.shield, 0) / PLAYER_MAX_SHIELD) * 100}%`;
+    // Viñeta pulsante persistente con la vida baja (bajo el 30 %).
+    this.vignette.classList.toggle('lowhp', me.alive && me.health < PLAYER_MAX_HEALTH * 0.3);
     this.kda.textContent = `${me.kills} / ${me.deaths} / ${me.assists}`;
     this.ammo.textContent = String(self.ammo);
     this.reserve.textContent = `/ ${self.reserveAmmo}`;
@@ -247,7 +253,27 @@ export class Hud {
   flashDamage(): void {
     this.vignette.classList.add('show');
     if (this.vignetteTimeout) clearTimeout(this.vignetteTimeout);
-    this.vignetteTimeout = setTimeout(() => this.vignette.classList.remove('show'), 120);
+    this.vignetteTimeout = setTimeout(() => this.vignette.classList.remove('show'), 160);
+  }
+
+  /** Destello cian al romperse el escudo. */
+  flashShieldBreak(): void {
+    this.shieldVignette.classList.remove('show');
+    void this.shieldVignette.offsetWidth;
+    this.shieldVignette.classList.add('show');
+  }
+
+  /**
+   * Cuña direccional de daño alrededor del crosshair.
+   * `angleDeg`: 0 = delante, 90 = derecha, 180 = detrás (sentido horario).
+   */
+  showDamageDirection(angleDeg: number): void {
+    const el = document.createElement('div');
+    el.className = 'damage-dir';
+    el.style.setProperty('--dir', `${Math.round(angleDeg)}deg`);
+    this.damageDirs.appendChild(el);
+    while (this.damageDirs.children.length > 6) this.damageDirs.firstChild?.remove();
+    setTimeout(() => el.remove(), 900);
   }
 
   showMatchEnd(text: string): void {
