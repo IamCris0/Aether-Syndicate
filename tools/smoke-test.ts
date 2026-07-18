@@ -23,10 +23,10 @@ socket.on('connect', () => {
     'join',
     mapId
       ? {
-          protocolVersion: 4, playerName: 'SmokeBot', method: 'create', loadout: ['smg-wisp'], level: 7,
+          protocolVersion: 5, playerName: 'SmokeBot', method: 'create', loadout: ['smg-wisp'], level: 7,
           createOptions: { name: `smoke-${mapId}`, maxPlayers: 8, mode: 'ffa', mapId, timeLimitS: 300, scoreLimit: 30, bots: 3, gravityScale: 1 },
         }
-      : { protocolVersion: 4, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7, operatorId: 'op-vermell' },
+      : { protocolVersion: 5, playerName: 'SmokeBot', method: 'matchmake', loadout: ['smg-wisp'], level: 7, operatorId: 'op-vermell' },
     (res: any) => {
       if (!res.ok) fail('join: ' + res.error);
       console.log('JOIN OK:', JSON.stringify(res));

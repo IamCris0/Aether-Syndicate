@@ -38,6 +38,8 @@ export interface MoveState {
   vel: Vec3;
   onGround: boolean;
   crouching: boolean;
+  /** Segundos en el aire (coyote time); 0 en el suelo. */
+  airTime: number;
 }
 
 export type TeamId = 0 | 1 | 2; // 2 = sin equipo (FFA)
@@ -52,6 +54,7 @@ export interface PlayerSnapshot {
   pitch: number;
   crouching: boolean;
   onGround: boolean;
+  airTime: number;
   alive: boolean;
   health: number;
   shield: number;

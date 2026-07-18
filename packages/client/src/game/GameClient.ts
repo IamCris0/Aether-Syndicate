@@ -59,7 +59,8 @@ export class GameClient {
   private modeDef;
 
   // Estado de predicción local.
-  private predicted: MoveState = { pos: vec3(), vel: vec3(), onGround: false, crouching: false };
+  private predicted: MoveState = { pos: vec3(), vel: vec3(), onGround: false, crouching: false, airTime: 0 };
+  private crouchSmooth = 0;
   private seq = 0;
   private accumulator = 0;
   private lastTime = 0;
@@ -413,6 +414,7 @@ export class GameClient {
       this.predicted.vel = vec3(this.me.vel.x, this.me.vel.y, this.me.vel.z);
       this.predicted.onGround = this.me.onGround;
       this.predicted.crouching = this.me.crouching;
+      this.predicted.airTime = this.me.airTime;
       for (const cmd of this.connection.pendingInputs) {
         stepMovement(this.predicted, cmd, this.moveCtx);
       }
@@ -734,7 +736,9 @@ export class GameClient {
     this.audio.setZeroG(gravityKind === 'zero' && this.alive);
 
     const eyeSign = 1 - 2 * this.gravityFlip;
-    const eyeY = (this.predicted.crouching ? PLAYER_EYE_HEIGHT * 0.6 : PLAYER_EYE_HEIGHT) * eyeSign;
+    // Agachado SUAVIZADO: la cámara desciende con interpolación, sin saltos.
+    this.crouchSmooth += ((this.predicted.crouching ? 1 : 0) - this.crouchSmooth) * Math.min(dt * 11, 1);
+    const eyeY = PLAYER_EYE_HEIGHT * (1 - 0.4 * this.crouchSmooth) * eyeSign;
     this.camera.position.set(this.predicted.pos.x, this.predicted.pos.y + eyeY, this.predicted.pos.z);
 
     // Dip de aterrizaje: la cámara se hunde según la velocidad de caída.

@@ -30,12 +30,27 @@ export const MOVE_GROUND_SPEED = 6.2;
 export const MOVE_SPRINT_MULTIPLIER = 1.45;
 export const MOVE_CROUCH_MULTIPLIER = 0.5;
 export const MOVE_GROUND_ACCEL = 60;
-export const MOVE_AIR_ACCEL = 14;
+export const MOVE_AIR_ACCEL = 20;
 export const MOVE_GROUND_FRICTION = 9;
 export const MOVE_JUMP_VELOCITY = 7.4;
-export const MOVE_ZERO_G_THRUST = 16;
-export const MOVE_ZERO_G_DAMPING = 0.6; // fricción exponencial por segundo
 export const MOVE_MAX_VELOCITY = 60;
+
+/** Coyote time: margen para saltar tras pisar el vacío (fluidez). */
+export const COYOTE_TIME_S = 0.12;
+
+/**
+ * CAMPO DE FLOTACIÓN (zonas 'zero' v2).
+ * Nada de vuelo 6-DOF: movimiento horizontal normal relativo al yaw,
+ * ascenso/descenso con Espacio/Ctrl, topes duros de velocidad y frenado
+ * controlable al soltar. Predecible, fluido y sin acelerones al entrar.
+ */
+export const FLOAT_SINK = 2.2; // caída suave (m/s^2) — permite aterrizar
+export const FLOAT_ACCEL = 40; // aceleración horizontal
+export const FLOAT_SPEED = 6.2; // velocidad horizontal objetivo
+export const FLOAT_VTHRUST = 26; // empuje vertical (Espacio/Ctrl)
+export const FLOAT_VMAX = 5.5; // tope de velocidad vertical
+export const FLOAT_HMAX = 9; // tope duro horizontal (doma el momento de entrada)
+export const FLOAT_DAMP = 3.4; // frenado exponencial al soltar (por segundo)
 
 /** Multiplicador de velocidad al apuntar (ADS). */
 export const MOVE_ADS_MULTIPLIER = 0.6;
@@ -72,4 +87,4 @@ export const DEFAULT_ROOM_PLAYERS = 12;
 export const ROOM_CODE_LENGTH = 6;
 
 /** Versión de protocolo: rechaza clientes incompatibles. */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;

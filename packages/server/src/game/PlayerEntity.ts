@@ -33,7 +33,7 @@ export class PlayerEntity {
   readonly isBot: boolean;
   team: TeamId = 2;
 
-  move: MoveState = { pos: vec3(), vel: vec3(), onGround: false, crouching: false };
+  move: MoveState = { pos: vec3(), vel: vec3(), onGround: false, crouching: false, airTime: 0 };
   yaw = 0;
   pitch = 0;
 
@@ -104,6 +104,7 @@ export class PlayerEntity {
     this.move.vel = vec3();
     this.move.onGround = false;
     this.move.crouching = false;
+    this.move.airTime = 0;
     this.yaw = yaw;
     this.pitch = 0;
     this.alive = true;
@@ -140,6 +141,7 @@ export class PlayerEntity {
       pitch: this.pitch,
       crouching: this.move.crouching,
       onGround: this.move.onGround,
+      airTime: this.move.airTime,
       alive: this.alive,
       health: Math.ceil(this.health),
       shield: Math.ceil(this.shield),

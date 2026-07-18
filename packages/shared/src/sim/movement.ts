@@ -1,4 +1,12 @@
 import {
+  COYOTE_TIME_S,
+  FLOAT_ACCEL,
+  FLOAT_DAMP,
+  FLOAT_HMAX,
+  FLOAT_SINK,
+  FLOAT_SPEED,
+  FLOAT_VMAX,
+  FLOAT_VTHRUST,
   INPUT_DT,
   MOVE_ADS_MULTIPLIER,
   MOVE_AIR_ACCEL,
@@ -9,8 +17,6 @@ import {
   MOVE_JUMP_VELOCITY,
   MOVE_MAX_VELOCITY,
   MOVE_SPRINT_MULTIPLIER,
-  MOVE_ZERO_G_DAMPING,
-  MOVE_ZERO_G_THRUST,
   PLAYER_CROUCH_HALF_HEIGHT,
   PLAYER_HALF_HEIGHT,
   PLAYER_HALF_WIDTH,
@@ -52,7 +58,7 @@ export function stepMovement(state: MoveState, input: InputCommand, ctx: Movemen
   state.crouching = !zeroG && (input.buttons & Buttons.Crouch) !== 0;
 
   if (zeroG) {
-    stepZeroG(state, input, dt);
+    stepFloat(state, input, dt);
   } else {
     stepGrounded(state, input, ctx, dt, g);
   }
@@ -84,6 +90,9 @@ export function stepMovement(state: MoveState, input: InputCommand, ctx: Movemen
   } else {
     state.onGround = false;
   }
+
+  // Coyote time: acumular tiempo en el aire (0 al pisar suelo).
+  state.airTime = state.onGround ? 0 : state.airTime + dt;
 }
 
 function stepGrounded(state: MoveState, input: InputCommand, ctx: MovementContext, dt: number, g: number): void {
@@ -133,43 +142,65 @@ function stepGrounded(state: MoveState, input: InputCommand, ctx: MovementContex
   }
 
   // Salto (en gravedad invertida se salta "hacia abajo" relativo al mundo).
-  if ((input.buttons & Buttons.Jump) !== 0 && state.onGround) {
+  // Coyote time: también se permite justo tras pisar el vacío.
+  const canJump = state.onGround || (state.airTime < COYOTE_TIME_S && Math.abs(state.vel.y) < 2);
+  if ((input.buttons & Buttons.Jump) !== 0 && canJump) {
     state.vel.y = g <= 0 ? MOVE_JUMP_VELOCITY : -MOVE_JUMP_VELOCITY;
     state.onGround = false;
+    state.airTime = COYOTE_TIME_S; // consume el coyote (sin doble salto)
   }
 
   state.vel.y += g * dt;
 }
 
-function stepZeroG(state: MoveState, input: InputCommand, dt: number): void {
-  // Vuelo 6-DOF: WASD relativo a la vista completa, salto/agacharse = subir/bajar.
-  viewDirection(tmpDir, input.yaw, input.pitch);
-  const fwdX = tmpDir.x;
-  const fwdY = tmpDir.y;
-  const fwdZ = tmpDir.z;
-  const rightX = Math.cos(input.yaw);
-  const rightZ = -Math.sin(input.yaw);
-
-  let ax = fwdX * input.moveY + rightX * input.moveX;
-  let ay = fwdY * input.moveY;
-  let az = fwdZ * input.moveY + rightZ * input.moveX;
-
-  if ((input.buttons & Buttons.Jump) !== 0) ay += 1;
-  if ((input.buttons & Buttons.Crouch) !== 0) ay -= 1;
-
-  const len = Math.hypot(ax, ay, az);
-  if (len > 1e-6) {
-    const boost = (input.buttons & Buttons.Sprint) !== 0 ? 1.5 : 1;
-    const k = (MOVE_ZERO_G_THRUST * boost * dt) / len;
-    state.vel.x += ax * k;
-    state.vel.y += ay * k;
-    state.vel.z += az * k;
+/**
+ * CAMPO DE FLOTACIÓN (zonas 'zero' v2).
+ * Movimiento horizontal NORMAL relativo al yaw (nada de volar hacia donde
+ * miras), Espacio asciende / Agacharse desciende con empuje suave, topes
+ * duros de velocidad (doman el momento al entrar) y frenado controlable
+ * al soltar. Una caída muy suave permite posarse en plataformas.
+ */
+function stepFloat(state: MoveState, input: InputCommand, dt: number): void {
+  // Horizontal: idéntico lenguaje que en tierra (yaw-relativo).
+  const sin = Math.sin(input.yaw);
+  const cos = Math.cos(input.yaw);
+  let wishX = input.moveX * cos - input.moveY * sin;
+  let wishZ = -input.moveY * cos - input.moveX * sin;
+  const wishLen = Math.hypot(wishX, wishZ);
+  if (wishLen > 1e-6) {
+    wishX /= wishLen;
+    wishZ /= wishLen;
+    const current = state.vel.x * wishX + state.vel.z * wishZ;
+    const addSpeed = FLOAT_SPEED - current;
+    if (addSpeed > 0) {
+      const accelSpeed = Math.min(FLOAT_ACCEL * dt * FLOAT_SPEED, addSpeed);
+      state.vel.x += wishX * accelSpeed;
+      state.vel.z += wishZ * accelSpeed;
+    }
+  } else {
+    // Sin input: frenado exponencial firme — puedes PARARTE en el aire.
+    const damp = Math.exp(-FLOAT_DAMP * dt);
+    state.vel.x *= damp;
+    state.vel.z *= damp;
   }
 
-  // Amortiguación suave para que el vuelo sea controlable pero con inercia.
-  const damp = Math.exp(-MOVE_ZERO_G_DAMPING * dt);
-  state.vel.x *= damp;
-  state.vel.y *= damp;
-  state.vel.z *= damp;
-  state.onGround = false;
+  // Vertical: empuje con Espacio/Agacharse; caída suave si no haces nada.
+  const up = (input.buttons & Buttons.Jump) !== 0;
+  const down = (input.buttons & Buttons.Crouch) !== 0;
+  if (up) state.vel.y += FLOAT_VTHRUST * dt;
+  else if (down) state.vel.y -= FLOAT_VTHRUST * dt;
+  else {
+    state.vel.y -= FLOAT_SINK * dt;
+    state.vel.y *= Math.exp(-FLOAT_DAMP * 0.5 * dt);
+  }
+
+  // Topes DUROS: entrar esprintando o cayendo nunca te dispara.
+  const hSpeed = Math.hypot(state.vel.x, state.vel.z);
+  if (hSpeed > FLOAT_HMAX) {
+    const k = FLOAT_HMAX / hSpeed;
+    state.vel.x *= k;
+    state.vel.z *= k;
+  }
+  if (state.vel.y > FLOAT_VMAX) state.vel.y = FLOAT_VMAX;
+  if (state.vel.y < -FLOAT_VMAX) state.vel.y = -FLOAT_VMAX;
 }

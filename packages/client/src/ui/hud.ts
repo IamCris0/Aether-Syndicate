@@ -132,7 +132,7 @@ export class Hud {
     const labels: Record<GravityKind, string> = {
       normal: 'GRAVEDAD NORMAL',
       low: 'GRAVEDAD REDUCIDA',
-      zero: 'GRAVEDAD CERO',
+      zero: 'CAMPO DE FLOTACIÓN',
       inverted: 'GRAVEDAD INVERTIDA',
     };
     this.gravity.textContent = labels[kind];
