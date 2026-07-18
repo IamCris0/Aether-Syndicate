@@ -202,16 +202,23 @@ function enterLobby(): void {
     connection.onDisconnect = () => {
       if (game) {
         pendingRejoin = connection!.lastRoomCode;
-        leaveGame('Conexión perdida — reconectando…');
+        leaveGame();
+        showReconnectOverlay();
+        // Si el socket no vuelve en 12 s, damos la reconexión por perdida.
+        reconnectTimeout = setTimeout(() => {
+          pendingRejoin = null;
+          failReconnectOverlay('No se pudo restablecer la conexión.');
+        }, 12000);
       }
     };
     connection.onReconnected = () => {
       if (!pendingRejoin) return;
       const code = pendingRejoin;
       pendingRejoin = null;
-      setStatus('Reconectado — volviendo a la partida…');
+      if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
       void startGame(() => connection!.joinByCode(settings.name, code, undefined, joinExtra())).then(() => {
-        if (!game) setStatus('La sala ya no existe. Busca una partida nueva.');
+        if (game) hideReconnectOverlay();
+        else failReconnectOverlay('La sala ya no existe.');
       });
     };
   }
@@ -219,6 +226,33 @@ function enterLobby(): void {
 
 function setStatus(text: string): void {
   $('lobby-status').textContent = text;
+}
+
+// --------------------------------------------------- overlay de reconexión
+
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function showReconnectOverlay(): void {
+  const el = $('reconnect-overlay');
+  el.classList.remove('hidden');
+  el.querySelector('.reconnect-card')?.classList.remove('failed');
+  $('reconnect-title').textContent = 'CONEXIÓN PERDIDA';
+  $('reconnect-sub').innerHTML = 'Reconectando<span class="reconnect-dots"><i>.</i><i>.</i><i>.</i></span>';
+}
+
+function hideReconnectOverlay(): void {
+  if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
+  $('reconnect-overlay').classList.add('hidden');
+}
+
+/** Estado final de fracaso: quita el spinner, muestra el motivo y vuelve al lobby. */
+function failReconnectOverlay(reason: string): void {
+  const el = $('reconnect-overlay');
+  el.querySelector('.reconnect-card')?.classList.add('failed');
+  $('reconnect-title').textContent = 'SIN CONEXIÓN';
+  $('reconnect-sub').textContent = `${reason} Busca una partida nueva.`;
+  setStatus(reason);
+  reconnectTimeout = setTimeout(() => hideReconnectOverlay(), 3400);
 }
 
 function closeAllModals(): void {
