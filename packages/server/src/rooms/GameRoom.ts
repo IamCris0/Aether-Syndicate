@@ -439,6 +439,7 @@ export class GameRoom {
       e.kills = 0;
       e.deaths = 0;
       e.assists = 0;
+      e.headshots = 0; // sin esto, la XP de headshot se recontaba entre partidas
       e.score = 0;
       e.gungameIndex = 0;
       const forced = this.mode.loadoutFor(e);

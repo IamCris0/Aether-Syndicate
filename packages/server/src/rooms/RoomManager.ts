@@ -16,6 +16,11 @@ import { GameRoom } from './GameRoom.js';
 /** Sin caracteres ambiguos (0/O, 1/I) para dictar códigos por voz. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+/** Tope global de salas activas: cada sala tiene su bucle a 30 Hz, así que
+ *  esto acota el consumo si alguien intenta crear salas en masa. Muy por
+ *  encima de cualquier uso legítimo entre amigos. */
+const MAX_ROOMS = 200;
+
 /**
  * Gestiona el ciclo de vida de las salas:
  *  - matchmaking: busca una sala pública con hueco o crea una nueva
@@ -38,6 +43,7 @@ export class RoomManager {
   }
 
   createRoom(options: Partial<RoomOptions>): GameRoom {
+    if (this.rooms.size >= MAX_ROOMS) throw new Error('Servidor lleno: demasiadas salas activas.');
     const mode = getGameMode(options.mode ?? 'ffa');
     const full: RoomOptions = {
       name: (options.name || 'Partida de Aether').slice(0, 40),

@@ -28,7 +28,8 @@ create policy "profiles_insert_own"
 drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
   on public.profiles for update
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id); -- impide reasignar la fila a otro user_id
 
 -- ============================================================
 -- v2: nombre de usuario ÚNICO (sin distinguir mayúsculas)
