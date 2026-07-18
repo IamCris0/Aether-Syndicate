@@ -15,9 +15,12 @@ export type BrushMaterial =
   | 'hull' // casco metálico
   | 'floor' // suelo industrial
   | 'glass'
-  | 'accent' // paneles emisivos
+  | 'accent' // paneles emisivos teal
   | 'catwalk'
   | 'rock'
+  | 'lab' // panel blanco de laboratorio
+  | 'container' // contenedor de carga (naranja industrial)
+  | 'molten' // metal fundido emisivo (letal por killY)
   | 'invisible'; // colisión sin render (barreras)
 
 export interface MapBrush extends Brush {

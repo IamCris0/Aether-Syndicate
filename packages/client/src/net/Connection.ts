@@ -90,6 +90,10 @@ export class Connection {
     this.socket.emit('voteMap', mapId);
   }
 
+  chat(text: string): void {
+    this.socket.emit('chat', text);
+  }
+
   leaveRoom(): void {
     this.socket.emit('leaveRoom');
     this.unacked = [];

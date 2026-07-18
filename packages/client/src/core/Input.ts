@@ -11,6 +11,8 @@ export class Input {
   sensitivity = 1;
   /** En gravedad invertida (cámara rotada 180º) el ratón se invierte. */
   invertLook = false;
+  /** false mientras el chat está abierto: el teclado no mueve al jugador. */
+  enabled = true;
 
   /** Slot solicitado con las teclas 1..3 (se consume una vez). */
   private requestedSlot = -1;
@@ -24,7 +26,7 @@ export class Input {
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     document.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
+      if (e.repeat || !this.enabled) return;
       this.keys.add(e.code);
       if (e.code === 'Tab') {
         e.preventDefault();

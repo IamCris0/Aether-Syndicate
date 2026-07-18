@@ -16,10 +16,13 @@ export class World {
   readonly group = new THREE.Group();
   /** Material emisivo de paneles/reactores (el cliente lo hace pulsar). */
   accentMaterial: THREE.MeshStandardMaterial;
+  /** Metal fundido: emisivo intenso que el cliente hace fluir/pulsar. */
+  moltenMaterial: THREE.MeshStandardMaterial;
 
   constructor(readonly map: MapDef, quality: WorldQuality = 'high') {
     const materials = createMaterials();
     this.accentMaterial = materials.accent as THREE.MeshStandardMaterial;
+    this.moltenMaterial = materials.molten as THREE.MeshStandardMaterial;
     const particleScale = quality === 'low' ? 0.35 : quality === 'medium' ? 0.7 : 1;
 
     // Agrupar la geometría de los brushes por material y fusionarla.
@@ -104,12 +107,20 @@ function createMaterials(): Record<BrushMaterial, THREE.Material> {
     color: 0x1c2740, roughness: 0.5, metalness: 0.7, emissive: 0x38e0c8, emissiveIntensity: 0.18,
   });
   const rock = new THREE.MeshStandardMaterial({ color: 0x554f4a, roughness: 1, metalness: 0.05 });
+  const lab = new THREE.MeshStandardMaterial({ color: 0xb9c6d4, roughness: 0.5, metalness: 0.3 });
+  const container = new THREE.MeshStandardMaterial({ color: 0x9a5a30, roughness: 0.7, metalness: 0.5 });
+  const molten = new THREE.MeshStandardMaterial({
+    color: 0xffffff, roughness: 0.9, metalness: 0, emissive: 0xff5a1f, emissiveIntensity: 0.9,
+  });
 
   tryTexture(floor, '/assets/textures/floor-deck-01.jpg', 10);
   tryTexture(hull, '/assets/textures/hull-wall-01.jpg', 6);
   tryTexture(catwalk, '/assets/textures/catwalk-01.jpg', 8);
   tryTexture(accent, '/assets/textures/accent-panel-01.jpg', 4);
   tryTexture(rock, '/assets/textures/rock-01.jpg', 5);
+  tryTexture(lab, '/assets/textures/lab-wall-01.jpg', 5);
+  tryTexture(container, '/assets/textures/container-01.jpg', 3);
+  tryTexture(molten, '/assets/textures/molten-01.jpg', 6);
 
   return {
     hull,
@@ -120,6 +131,9 @@ function createMaterials(): Record<BrushMaterial, THREE.Material> {
     accent,
     catwalk,
     rock,
+    lab,
+    container,
+    molten,
     invisible: new THREE.MeshBasicMaterial({ visible: false }),
   };
 }

@@ -194,7 +194,24 @@ export class GameClient {
     this.input.onPointerLockChange = (locked) => {
       this.hud.setPause(!locked && this.running && !this.matchEnded);
     };
+
+    // Chat en partida: T abre, Enter envía, Esc cierra. Mientras el chat
+    // está abierto el teclado NO mueve al jugador (input.enabled).
+    this.hud.onChatSend = (text) => this.connection.chat(text);
+    this.hud.onChatToggle = (open) => {
+      this.input.enabled = !open;
+    };
+    this.connection.onChat = (from, text) => this.hud.addChatMessage(from, text);
+    this.chatKeyListener = (e: KeyboardEvent) => {
+      if (e.code === 'KeyT' && this.input.isLocked && !this.hud.isChatOpen && this.alive) {
+        e.preventDefault();
+        this.hud.openChat();
+      }
+    };
+    document.addEventListener('keydown', this.chatKeyListener);
   }
+
+  private chatKeyListener: ((e: KeyboardEvent) => void) | null = null;
 
   /** Aplicar ajustes en caliente desde el modal (sin reiniciar la partida). */
   applySettings(s: { fov: number; sensitivity: number; quality?: 'low' | 'medium' | 'high' }): void {
@@ -214,6 +231,8 @@ export class GameClient {
   stop(): void {
     this.bankSession(false, false); // XP parcial si se abandona a mitad
     this.running = false;
+    if (this.chatKeyListener) document.removeEventListener('keydown', this.chatKeyListener);
+    this.input.enabled = true;
     this.hud.hide();
     this.input.release();
     this.connection.onSnapshot = null;
@@ -244,9 +263,13 @@ export class GameClient {
     this.updateExplosions(dt);
     this.sparks.update(dt);
 
-    // Pulso del reactor: los paneles emisivos "respiran".
+    // Pulso del reactor: los paneles emisivos "respiran"; la lava fluye.
     this.worldTime += dt;
     this.world.accentMaterial.emissiveIntensity = 0.18 + Math.sin(this.worldTime * 1.8) * 0.08;
+    this.world.moltenMaterial.emissiveIntensity = 0.9 + Math.sin(this.worldTime * 2.6) * 0.25;
+    if (this.world.moltenMaterial.map) {
+      this.world.moltenMaterial.map.offset.y = this.worldTime * 0.015;
+    }
     this.recoverRecoil(dt);
     this.updateCamera(dt);
 

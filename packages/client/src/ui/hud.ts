@@ -175,6 +175,56 @@ export class Hud {
 
   private crosshairEl = $('crosshair');
 
+  // ------------------------------------------------------------ chat
+
+  private chatOpen = false;
+  onChatSend: ((text: string) => void) | null = null;
+  onChatToggle: ((open: boolean) => void) | null = null;
+
+  get isChatOpen(): boolean {
+    return this.chatOpen;
+  }
+
+  openChat(): void {
+    if (this.chatOpen) return;
+    this.chatOpen = true;
+    const wrap = document.getElementById('chat-input-wrap')!;
+    const input = document.getElementById('chat-input') as HTMLInputElement;
+    wrap.classList.remove('hidden');
+    input.value = '';
+    input.focus();
+    this.onChatToggle?.(true);
+
+    input.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') {
+        const text = input.value.trim();
+        if (text) this.onChatSend?.(text);
+        this.closeChat();
+      } else if (e.key === 'Escape') {
+        this.closeChat();
+      }
+    };
+  }
+
+  private closeChat(): void {
+    this.chatOpen = false;
+    const input = document.getElementById('chat-input') as HTMLInputElement;
+    input.blur();
+    document.getElementById('chat-input-wrap')!.classList.add('hidden');
+    this.onChatToggle?.(false);
+  }
+
+  addChatMessage(from: string, text: string): void {
+    const log = document.getElementById('chat-log')!;
+    const line = document.createElement('div');
+    line.className = 'chat-line';
+    line.innerHTML = `<b>${escapeHtml(from)}:</b> ${escapeHtml(text)}`;
+    log.appendChild(line);
+    while (log.children.length > 6) log.firstChild?.remove();
+    setTimeout(() => line.classList.add('fade'), 6000);
+  }
+
   /** Banner central al eliminar a un rival. */
   showKillBanner(victimName: string, headshot: boolean): void {
     const el = document.getElementById('kill-banner')!;

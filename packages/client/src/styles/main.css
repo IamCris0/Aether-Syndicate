@@ -484,6 +484,28 @@ input:focus, select:focus { border-color: var(--accent); }
 .scoreboard tr.team0 td:first-child { border-left: 3px solid var(--accent); }
 .scoreboard tr.team1 td:first-child { border-left: 3px solid var(--danger); }
 
+/* ---------- Chat en partida ---------- */
+.chat {
+  position: absolute; left: 26px; bottom: 110px;
+  width: 320px;
+  display: flex; flex-direction: column; gap: 6px;
+  pointer-events: none;
+}
+.chat-line {
+  background: rgba(4, 10, 20, 0.65);
+  padding: 3px 9px; border-radius: 4px;
+  font-size: 0.78rem;
+  transition: opacity 1s;
+}
+.chat-line b { color: var(--accent); font-weight: 700; }
+.chat-line.fade { opacity: 0; }
+.chat-input-wrap { pointer-events: auto; }
+.chat-input-wrap input {
+  background: rgba(4, 10, 20, 0.85);
+  font-size: 0.82rem;
+  padding: 8px 11px;
+}
+
 .kill-banner {
   position: absolute; top: 30%; left: 50%;
   transform: translateX(-50%);
