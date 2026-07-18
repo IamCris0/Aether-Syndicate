@@ -27,6 +27,9 @@ const SAMPLES: Record<string, string> = {
   'shot-shotgun': '/assets/audio/shot-shotgun.mp3',
   'shot-sniper': '/assets/audio/shot-sniper.mp3',
   'shot-pistol': '/assets/audio/shot-pistol.mp3',
+  'shot-lmg': '/assets/audio/shot-lmg.mp3',
+  'melee-swing': '/assets/audio/melee-swing.mp3',
+  'grenade-throw': '/assets/audio/grenade-throw.mp3',
   reload: '/assets/audio/reload.mp3',
   footstep: '/assets/audio/footstep.mp3',
   explosion: '/assets/audio/explosion.mp3',
@@ -34,14 +37,15 @@ const SAMPLES: Record<string, string> = {
   zerog: '/assets/audio/zerog-ambient.mp3',
 };
 
-/** Clase → sample (las clases sin sample propio reutilizan otro con pitch). */
+/** Clase → sample (cada clase tiene su propio carácter, sin reutilización por pitch). */
 const SHOT_SAMPLE: Partial<Record<WeaponClass, { name: string; rate: number }>> = {
   ar: { name: 'shot-ar', rate: 1 },
   smg: { name: 'shot-smg', rate: 1 },
   shotgun: { name: 'shot-shotgun', rate: 1 },
   sniper: { name: 'shot-sniper', rate: 1 },
   pistol: { name: 'shot-pistol', rate: 1 },
-  lmg: { name: 'shot-ar', rate: 0.82 },
+  lmg: { name: 'shot-lmg', rate: 1 },
+  melee: { name: 'melee-swing', rate: 1 },
 };
 
 export class AudioManager {
@@ -220,6 +224,7 @@ export class AudioManager {
   }
 
   playThrow(): void {
+    if (this.playSample('grenade-throw', 0.4)) return;
     this.blip(340, 0.06, 0.15);
   }
 
