@@ -1,14 +1,14 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { buildOperator } from '../game/OperatorModel.js';
 
 /**
  * Lobby 3D estilo vestidor (Fortnite-like): el operador equipado renderizado
- * en tiempo real sobre un podio con iluminación cinematográfica.
+ * en tiempo real sobre un podio con iluminaciÃ³n cinematogrÃ¡fica.
  *
  * El modelo del operador tiene dos rutas:
- *  1. GLB en /assets/models/operator.glb (generado con image_to_3d) — preferido.
- *  2. Operador PROCEDURAL construido con primitivas — fallback garantizado,
- *     mismo lenguaje visual que los avatares in-game pero con más detalle.
+ *  1. GLB en /assets/models/operator.glb (generado con image_to_3d) â€” preferido.
+ *  2. Operador PROCEDURAL construido con primitivas â€” fallback garantizado,
+ *     mismo lenguaje visual que los avatares in-game pero con mÃ¡s detalle.
  */
 export class LobbyScene {
   private renderer: THREE.WebGLRenderer;
@@ -31,7 +31,7 @@ export class LobbyScene {
     this.camera.position.set(0.15, 1.35, 3.4);
     this.camera.lookAt(0, 1.0, 0);
 
-    // ---- Iluminación cinematográfica (key teal / rim cian / fill azul) ----
+    // ---- IluminaciÃ³n cinematogrÃ¡fica (key teal / rim cian / fill azul) ----
     this.scene.add(new THREE.AmbientLight(0x18243a, 1.4));
     const key = new THREE.DirectionalLight(0xd8ecff, 2.6);
     key.position.set(2.5, 3.5, 2.5);
@@ -105,54 +105,6 @@ export class LobbyScene {
     this.operator.add(buildOperator(accent, armor));
   }
 
-  /** (Legado) Operador detallado con primitivas — sustituido por buildOperator. */
-  private buildProceduralOperator(): void {
-    const armor = new THREE.MeshStandardMaterial({ color: 0x232d40, roughness: 0.45, metalness: 0.85 });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x141b29, roughness: 0.7, metalness: 0.5 });
-    const glow = new THREE.MeshStandardMaterial({
-      color: 0x38e0c8, emissive: 0x38e0c8, emissiveIntensity: 1.8, roughness: 0.3, metalness: 0.3,
-    });
-
-    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number, rz = 0): THREE.Mesh => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, y, z);
-      m.rotation.z = rz;
-      this.operator.add(m);
-      return m;
-    };
-
-    // Piernas y botas
-    add(new THREE.BoxGeometry(0.16, 0.5, 0.18), dark, -0.12, 0.25, 0);
-    add(new THREE.BoxGeometry(0.16, 0.5, 0.18), dark, 0.12, 0.25, 0);
-    add(new THREE.BoxGeometry(0.18, 0.42, 0.2), armor, -0.12, 0.7, 0);
-    add(new THREE.BoxGeometry(0.18, 0.42, 0.2), armor, 0.12, 0.7, 0);
-    add(new THREE.BoxGeometry(0.19, 0.12, 0.26), dark, -0.12, 0.06, 0.02);
-    add(new THREE.BoxGeometry(0.19, 0.12, 0.26), dark, 0.12, 0.06, 0.02);
-
-    // Torso con placa pectoral y franja emisiva
-    add(new THREE.BoxGeometry(0.46, 0.55, 0.26), armor, 0, 1.18, 0);
-    add(new THREE.BoxGeometry(0.4, 0.34, 0.08), dark, 0, 1.24, 0.15);
-    add(new THREE.BoxGeometry(0.05, 0.3, 0.02), glow, 0, 1.2, 0.2);
-    add(new THREE.BoxGeometry(0.48, 0.14, 0.28), dark, 0, 0.88, 0);
-
-    // Hombreras
-    add(new THREE.BoxGeometry(0.18, 0.14, 0.24), armor, -0.32, 1.4, 0, 0.25);
-    add(new THREE.BoxGeometry(0.18, 0.14, 0.24), armor, 0.32, 1.4, 0, -0.25);
-
-    // Brazos
-    add(new THREE.BoxGeometry(0.12, 0.42, 0.14), dark, -0.33, 1.1, 0, 0.08);
-    add(new THREE.BoxGeometry(0.12, 0.42, 0.14), dark, 0.33, 1.1, 0, -0.08);
-    add(new THREE.BoxGeometry(0.11, 0.3, 0.13), armor, -0.36, 0.78, 0.04);
-    add(new THREE.BoxGeometry(0.11, 0.3, 0.13), armor, 0.36, 0.78, 0.04);
-
-    // Casco con visor emisivo y detalles
-    add(new THREE.BoxGeometry(0.3, 0.32, 0.32), armor, 0, 1.66, 0);
-    add(new THREE.BoxGeometry(0.24, 0.1, 0.06), glow, 0, 1.68, 0.16);
-    add(new THREE.BoxGeometry(0.32, 0.08, 0.3), dark, 0, 1.83, 0);
-    add(new THREE.BoxGeometry(0.04, 0.05, 0.04), glow, -0.16, 1.62, 0.08);
-    add(new THREE.BoxGeometry(0.04, 0.05, 0.04), glow, 0.16, 1.62, 0.08);
-  }
-
   start(): void {
     if (this.running) return;
     this.running = true;
@@ -178,11 +130,11 @@ export class LobbyScene {
     if (!this.running) return;
     this.time += 1 / 60;
 
-    // Rotación lenta + parallax hacia el cursor + respiración.
+    // RotaciÃ³n lenta + parallax hacia el cursor + respiraciÃ³n.
     const targetYaw = Math.sin(this.time * 0.25) * 0.35 + this.mouseX * 0.3;
     this.operator.rotation.y += (targetYaw - this.operator.rotation.y) * 0.04;
     this.operator.position.y = Math.sin(this.time * 1.6) * 0.012;
-    this.podiumRing.material = this.podiumRing.material; // (sin cambios; el anillo pulsa vía intensidad)
+    this.podiumRing.material = this.podiumRing.material; // (sin cambios; el anillo pulsa vÃ­a intensidad)
     (this.podiumRing.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.9 + Math.sin(this.time * 2.2) * 0.5;
 
     this.renderer.render(this.scene, this.camera);

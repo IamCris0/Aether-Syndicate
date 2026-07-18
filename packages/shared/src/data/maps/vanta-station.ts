@@ -89,8 +89,9 @@ mirror(-26, 0, 5, -24, 2.2, 8, 'catwalk');
 mirror(-28, 0, 5, -26, 3.3, 8, 'catwalk');
 mirror(-30, 0, 5, -28, 4.4, 8, 'catwalk');
 mirror(-32, 0, 5, -30, 5.5, 8, 'catwalk');
-// Barandilla del entrepiso hacia el núcleo
-mirror(-42, 6.6, -0.5, -24, 7.4, 0.5, 'catwalk');
+// Barandilla en el borde interior del entrepiso (mirando al núcleo)
+mirror(-24.5, 6.6, -8, -24, 7.4, -2, 'catwalk');
+mirror(-24.5, 6.6, 2, -24, 7.4, 8, 'catwalk');
 
 // ==== CUBIERTA EXTERIOR (z 8..24, sin techo, gravedad baja) ====
 // Rocas de asteroide como cobertura orgánica

@@ -83,6 +83,13 @@ export class Input {
     if (!this.locked) this.canvas.requestPointerLock();
   }
 
+  /** Suelta todas las teclas retenidas (al abrir el chat, p. ej.). */
+  clearHeld(): void {
+    this.keys.clear();
+    this.mouseDown = false;
+    this.mouse2Down = false;
+  }
+
   sample(): { moveX: number; moveY: number; buttons: number; weaponSlot: number } {
     let moveX = 0;
     let moveY = 0;

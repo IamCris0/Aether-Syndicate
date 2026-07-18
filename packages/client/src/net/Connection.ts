@@ -35,6 +35,10 @@ export class Connection {
   onSnapshot: ((snap: Snapshot) => void) | null = null;
   onChat: ((from: string, text: string) => void) | null = null;
   onDisconnect: (() => void) | null = null;
+  /** Se dispara cuando el socket se RE-conecta tras una caída. */
+  onReconnected: (() => void) | null = null;
+  /** Último código de sala al que nos unimos (para re-entrar tras caída). */
+  lastRoomCode: string | null = null;
 
   constructor() {
     const url = import.meta.env.VITE_SERVER_URL as string | undefined;
@@ -48,12 +52,21 @@ export class Connection {
     this.socket.on('sping', (cb) => cb());
     this.socket.on('chat', (from, text) => this.onChat?.(from, text));
     this.socket.on('disconnect', () => this.onDisconnect?.());
+
+    let firstConnect = true;
+    this.socket.on('connect', () => {
+      if (!firstConnect) this.onReconnected?.();
+      firstConnect = false;
+    });
   }
 
   join(req: Omit<JoinRequest, 'protocolVersion'>): Promise<JoinResponse> {
     return new Promise((resolve) => {
       this.socket.emit('join', { ...req, protocolVersion: PROTOCOL_VERSION }, (res) => {
-        if (res.ok && res.playerId) this.playerId = res.playerId;
+        if (res.ok && res.playerId) {
+          this.playerId = res.playerId;
+          this.lastRoomCode = res.roomCode ?? null;
+        }
         resolve(res);
       });
     });

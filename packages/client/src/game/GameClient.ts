@@ -201,6 +201,7 @@ export class GameClient {
     this.hud.onChatSend = (text) => this.connection.chat(text);
     this.hud.onChatToggle = (open) => {
       this.input.enabled = !open;
+      if (open) this.input.clearHeld(); // no seguir andando mientras escribes
     };
     this.connection.onChat = (from, text) => this.hud.addChatMessage(from, text);
     this.chatKeyListener = (e: KeyboardEvent) => {

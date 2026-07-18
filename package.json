@@ -14,7 +14,8 @@
     "build": "npm run build -w @aether/client && npm run build -w @aether/server",
     "typecheck": "npm run typecheck -w @aether/shared && npm run typecheck -w @aether/server && npm run typecheck -w @aether/client",
     "start": "npm run start -w @aether/server",
-    "test:smoke": "tsx tools/smoke-test.ts"
+    "test:smoke": "tsx tools/smoke-test.ts",
+    "test:sim": "tsx tools/sim-test.ts"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

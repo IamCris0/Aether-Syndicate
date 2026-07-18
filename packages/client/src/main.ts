@@ -189,8 +189,23 @@ function enterLobby(): void {
   setStatus('');
   if (!connection) {
     connection = new Connection();
+    // Reconexión automática: si se cae la conexión en plena partida,
+    // al recuperarse el socket re-entramos a la MISMA sala por su código.
+    let pendingRejoin: string | null = null;
     connection.onDisconnect = () => {
-      if (game) leaveGame('Conexión perdida con el servidor.');
+      if (game) {
+        pendingRejoin = connection!.lastRoomCode;
+        leaveGame('Conexión perdida — reconectando…');
+      }
+    };
+    connection.onReconnected = () => {
+      if (!pendingRejoin) return;
+      const code = pendingRejoin;
+      pendingRejoin = null;
+      setStatus('Reconectado — volviendo a la partida…');
+      void startGame(() => connection!.joinByCode(settings.name, code, undefined, joinExtra())).then(() => {
+        if (!game) setStatus('La sala ya no existe. Busca una partida nueva.');
+      });
     };
   }
 }
@@ -408,6 +423,13 @@ $('form-settings').addEventListener('submit', () => {
   game?.applySettings(settings);
   void saveSettings(settings);
 });
+
+// Keep-alive: mientras la pestaña esté abierta, el servidor free de Render
+// no se duerme (ping ligero al health check cada 4 minutos).
+setInterval(() => {
+  const base = (import.meta.env.VITE_SERVER_URL as string | undefined) ?? '';
+  void fetch(`${base}/health`).catch(() => { /* sin conexión: irrelevante */ });
+}, 4 * 60 * 1000);
 
 // Sonido sutil en todos los botones de la interfaz.
 document.addEventListener('click', (e) => {
