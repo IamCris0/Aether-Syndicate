@@ -1,5 +1,8 @@
 import type { WeaponClass } from '@aether/shared';
 
+/** Carácter de pisada según el material del suelo (ver `BrushMaterial` en @aether/shared). */
+export type FootSurface = 'solid' | 'metal' | 'rock';
+
 /**
  * Audio 2.0 — dos capas:
  *  1. SAMPLES reales en /assets/audio/*.mp3 (pipeline Higgsfield): se cargan
@@ -127,17 +130,46 @@ export class AudioManager {
 
   // ------------------------------------------------------------ movimiento
 
-  playFootstep(distance = 0): void {
-    if (this.playSample('footstep', this.distanceGain(distance) * 0.22, 0.9 + Math.random() * 0.25)) return;
+  /** Perfil tonal por superficie: mismo sample base, coloreado con un filtro distinto. */
+  private static readonly FOOT_PROFILE: Record<
+    FootSurface,
+    { rate: number; filterType: BiquadFilterType; freq: number; shelfGain?: number; vol: number }
+  > = {
+    solid: { rate: 1, filterType: 'lowpass', freq: 9000, vol: 0.22 },
+    metal: { rate: 1.12, filterType: 'highshelf', freq: 2800, shelfGain: 9, vol: 0.2 },
+    rock: { rate: 0.82, filterType: 'lowpass', freq: 900, vol: 0.24 },
+  };
+
+  /** Pisada coloreada por el material del mapa bajo los pies (metal, roca, sólido). */
+  playFootstep(surface: FootSurface = 'solid', distance = 0): void {
     if (!this.ctx || !this.master) return;
+    const dist = this.distanceGain(distance);
+    const profile = AudioManager.FOOT_PROFILE[surface];
+    const buffer = this.buffers.get('footstep');
+    if (buffer) {
+      const src = this.ctx.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.value = profile.rate * (0.92 + Math.random() * 0.16);
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = profile.filterType;
+      filter.frequency.value = profile.freq;
+      if (profile.shelfGain) filter.gain.value = profile.shelfGain;
+      const gain = this.ctx.createGain();
+      gain.gain.value = dist * profile.vol;
+      src.connect(filter).connect(gain).connect(this.master);
+      src.start();
+      return;
+    }
+    // Procedural (sin sample cargado): ruido con perfil propio por superficie.
     const t = this.ctx.currentTime;
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(this.distanceGain(distance) * 0.12, t);
+    gain.gain.setValueAtTime(dist * (surface === 'rock' ? 0.14 : surface === 'metal' ? 0.13 : 0.12), t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
     const noise = this.noiseSource(0.08);
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 260 + Math.random() * 120;
+    filter.type = surface === 'metal' ? 'bandpass' : 'lowpass';
+    filter.frequency.value =
+      surface === 'metal' ? 2600 + Math.random() * 500 : surface === 'rock' ? 150 + Math.random() * 70 : 260 + Math.random() * 120;
     noise.connect(filter).connect(gain).connect(this.master);
     noise.start(t);
     noise.stop(t + 0.09);

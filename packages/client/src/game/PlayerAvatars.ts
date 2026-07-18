@@ -16,10 +16,20 @@ interface Sample {
   alive: boolean;
 }
 
+/** Emisivo base de un material, guardado para poder revertir el destello de impacto. */
+interface MaterialBaseline {
+  mat: THREE.MeshStandardMaterial;
+  emissive: THREE.Color;
+  intensity: number;
+}
+
 interface Avatar {
   group: THREE.Group;
   rig: THREE.Group;
   buffer: Sample[];
+  materials: MaterialBaseline[];
+  /** Timestamp (ms) hasta el que el modelo debe verse teñido de rojo por daño. */
+  hitUntil: number;
 }
 
 const TEAM_COLORS: Record<number, number> = { 0: 0x38e0c8, 1: 0xff4d5e, 2: 0xffa640 };
@@ -98,12 +108,30 @@ export class PlayerAvatars {
       const inverted = gravityKindAt(this.gravityZones, avatar.group.position) === 'inverted';
       const targetFlip = inverted ? Math.PI : 0;
       avatar.group.rotation.z += (targetFlip - avatar.group.rotation.z) * 0.12;
+
+      // Destello rojo al recibir daño: confirma el impacto sobre el propio modelo.
+      const flashing = now < avatar.hitUntil;
+      for (const m of avatar.materials) {
+        if (flashing) {
+          m.mat.emissive.setRGB(1, 0.12, 0.1);
+          m.mat.emissiveIntensity = 1.6;
+        } else {
+          m.mat.emissive.copy(m.emissive);
+          m.mat.emissiveIntensity = m.intensity;
+        }
+      }
     }
   }
 
   positionOf(id: string): THREE.Vector3 | null {
     const avatar = this.avatars.get(id);
     return avatar && avatar.group.visible ? avatar.group.position.clone() : null;
+  }
+
+  /** Marca a un jugador remoto para el destello de impacto en el próximo `interpolate`. */
+  hitFlash(id: string, now: number): void {
+    const avatar = this.avatars.get(id);
+    if (avatar) avatar.hitUntil = now + 130;
   }
 
   private createAvatar(accent: number, armor?: number): Avatar {
@@ -113,7 +141,13 @@ export class PlayerAvatars {
     const rig = buildOperator(accent, armor);
     rig.position.y = -0.92;
     group.add(rig);
-    return { group, rig, buffer: [] };
+    const materials: MaterialBaseline[] = [];
+    rig.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshStandardMaterial) {
+        materials.push({ mat: obj.material, emissive: obj.material.emissive.clone(), intensity: obj.material.emissiveIntensity });
+      }
+    });
+    return { group, rig, buffer: [], materials, hitUntil: 0 };
   }
 }
 

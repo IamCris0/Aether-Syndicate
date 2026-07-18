@@ -19,6 +19,7 @@ import {
   viewDirection,
   type GameModeId,
   type InputCommand,
+  type MapBrush,
   type MovementContext,
   type MoveState,
   type PlayerSnapshot,
@@ -30,7 +31,7 @@ import { World } from './World.js';
 import { Sparks } from './Sparks.js';
 import { PlayerAvatars } from './PlayerAvatars.js';
 import { WeaponView } from './WeaponView.js';
-import { AudioManager } from '../audio/AudioManager.js';
+import { AudioManager, type FootSurface } from '../audio/AudioManager.js';
 import { Hud } from '../ui/hud.js';
 
 /**
@@ -328,14 +329,40 @@ export class GameClient {
     stepMovement(this.predicted, cmd, this.moveCtx);
     this.connection.sendInput(cmd);
 
-    // Pasos: cada ~2.3 m recorridos en el suelo suena una pisada.
+    // Pasos: cada ~2.3 m recorridos en el suelo suena una pisada, coloreada
+    // por el material real bajo los pies (metal de pasarela, roca, sólido).
     const speed = Math.hypot(this.predicted.vel.x, this.predicted.vel.z);
     if (this.predicted.onGround && speed > 1.5) {
       this.stepDistance += speed * INPUT_DT;
       if (this.stepDistance > 2.3) {
         this.stepDistance = 0;
-        this.audio.playFootstep();
+        this.audio.playFootstep(this.surfaceUnderfoot());
       }
+    }
+  }
+
+  /** Material del brush justo debajo del jugador (para el timbre de la pisada). */
+  private surfaceUnderfoot(): FootSurface {
+    const { x, y, z } = this.predicted.pos;
+    const brushes = this.moveCtx.brushes as MapBrush[];
+    let bestTop = -Infinity;
+    let material: MapBrush['material'] = 'floor';
+    for (const b of brushes) {
+      if (x < b.min.x || x > b.max.x || z < b.min.z || z > b.max.z) continue;
+      if (b.max.y <= y + 0.15 && b.max.y > bestTop) {
+        bestTop = b.max.y;
+        material = b.material;
+      }
+    }
+    switch (material) {
+      case 'hull':
+      case 'catwalk':
+      case 'glass':
+        return 'metal';
+      case 'rock':
+        return 'rock';
+      default:
+        return 'solid';
     }
   }
 
@@ -600,8 +627,10 @@ export class GameClient {
           this.hud.flashHitmarker('head');
           this.audio.playHit('head');
         }
-        // Daño recibido: cuña direccional hacia el atacante (relativa a la cámara).
+        // Daño recibido: cuña direccional hacia el atacante + sacudida de cámara
+        // proporcional al daño (independiente de la de explosiones).
         if (ev.targetId === selfId && ev.attackerId !== selfId) {
+          this.shake = Math.max(this.shake, Math.min(0.35, ev.amount * 0.012));
           const attacker = snap.players.find((p) => p.id === ev.attackerId);
           if (attacker) {
             const dx = attacker.pos.x - this.predicted.pos.x;
@@ -612,6 +641,10 @@ export class GameClient {
             const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
             this.hud.showDamageDirection((Math.atan2(right, fwd) * 180) / Math.PI);
           }
+        }
+        // Confirmación visual en el propio modelo del rival: destello rojo breve.
+        if (ev.targetId !== selfId) {
+          this.avatars.hitFlash(ev.targetId, Date.now());
         }
         break;
       }
