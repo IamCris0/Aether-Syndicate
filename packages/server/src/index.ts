@@ -10,6 +10,7 @@ import {
 } from '@aether/shared';
 import { CONFIG } from './config.js';
 import { RoomManager } from './rooms/RoomManager.js';
+import { supabaseAdminEnabled, verifyAccessToken } from './services/supabaseAdmin.js';
 import type { GameRoom } from './rooms/GameRoom.js';
 
 /**
@@ -38,7 +39,7 @@ if (CONFIG.clientDist) {
 io.on('connection', (socket) => {
   let room: GameRoom | null = null;
 
-  socket.on('join', (req, cb) => {
+  socket.on('join', async (req, cb) => {
     try {
       if (req.protocolVersion !== PROTOCOL_VERSION) {
         cb({ ok: false, error: 'Versión de cliente incompatible. Recarga la página.' });
@@ -64,8 +65,16 @@ io.on('connection', (socket) => {
         target = rooms.matchmake(req.preferredMode);
       }
 
-      target.addPlayer(socket, name, req.loadout, req.level, req.operatorId);
+      const entity = target.addPlayer(socket, name, req.loadout, req.level, req.operatorId);
       room = target;
+
+      // Progresión autoritativa: verificar el token de sesión (asíncrono,
+      // no bloquea el join — el jugador ya está dentro).
+      if (req.authToken && typeof req.authToken === 'string') {
+        void verifyAccessToken(req.authToken).then((userId) => {
+          if (userId) entity.cloudUserId = userId;
+        });
+      }
       cb({
         ok: true,
         playerId: socket.id,
@@ -108,6 +117,7 @@ io.on('connection', (socket) => {
 
 httpServer.listen(CONFIG.port, () => {
   console.log(`[aether] servidor de juego en http://localhost:${CONFIG.port} (tick ${SERVER_TICK_RATE} Hz, región ${CONFIG.region})`);
+  console.log(`[aether] progresión autoritativa: ${supabaseAdminEnabled() ? 'ACTIVA (Supabase admin)' : 'inactiva (sin SUPABASE_SERVICE_ROLE_KEY)'}`);
 });
 
 function sanitizeName(raw: unknown): string {

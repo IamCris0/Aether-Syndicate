@@ -19,6 +19,8 @@ export interface JoinExtra {
   loadout?: string[];
   level?: number;
   operatorId?: string;
+  /** Token de sesión Supabase para la progresión autoritativa. */
+  authToken?: string;
 }
 
 /**

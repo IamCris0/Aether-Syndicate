@@ -10,6 +10,11 @@ import {
   SHIELD_REGEN_DELAY_S,
   SHIELD_REGEN_RATE,
   WEAPONS,
+  XP_HEADSHOT_BONUS,
+  XP_MATCH_COMPLETE,
+  XP_MATCH_WIN,
+  XP_PER_ASSIST,
+  XP_PER_KILL,
   distance,
   getMap,
   getOperator,
@@ -30,6 +35,7 @@ import {
 } from '@aether/shared';
 import { PlayerEntity } from '../game/PlayerEntity.js';
 import { BotController } from '../game/BotController.js';
+import { grantMatchResult } from '../services/supabaseAdmin.js';
 import { fireHitscan, fireMelee, mulberry32 } from '../game/combat.js';
 import { GrenadeSystem } from '../game/GrenadeSystem.js';
 import { createModeLogic, type GameModeLogic, type MatchState } from '../game/modes.js';
@@ -158,6 +164,7 @@ export class GameRoom {
   removePlayer(id: string): void {
     const seat = this.seats.get(id);
     if (!seat) return;
+    this.grantProgress(seat.entity, false); // XP parcial al abandonar
     this.seats.delete(id);
     this.damagers.delete(id);
     if (seat.socket) {
@@ -341,6 +348,7 @@ export class GameRoom {
 
     if (killer && killer.id !== victim.id) {
       killer.kills++;
+      if (headshot) killer.headshots++;
       this.mode.onKill(killer, victim, this.match, this.options.scoreLimit);
     }
 
@@ -378,7 +386,28 @@ export class GameRoom {
     this.mapVotes.set(playerId, mapId);
   }
 
+  /** XP AUTORITATIVA: el servidor calcula y escribe el progreso en la nube. */
+  private grantProgress(e: PlayerEntity, finished: boolean): void {
+    if (!e.cloudUserId || e.isBot) return;
+    const won = finished && (
+      this.match.winnerId === e.id ||
+      (this.match.winnerTeam !== null && this.match.winnerTeam === e.team)
+    );
+    const xp =
+      e.kills * XP_PER_KILL +
+      e.headshots * XP_HEADSHOT_BONUS +
+      e.assists * XP_PER_ASSIST +
+      (finished ? (won ? XP_MATCH_WIN : XP_MATCH_COMPLETE) : 0);
+    if (xp <= 0 && e.deaths === 0) return;
+    void grantMatchResult(e.cloudUserId, {
+      xp, kills: e.kills, deaths: e.deaths, assists: e.assists, won, finished,
+    });
+  }
+
   private restartMatch(now: number): void {
+    // Progresión autoritativa de la partida que termina.
+    for (const e of this.entities()) this.grantProgress(e, true);
+
     // Resolver la votación de mapa (empate ⇒ se queda el actual).
     if (this.voteOptions.length > 1) {
       const tally = new Map<string, number>();

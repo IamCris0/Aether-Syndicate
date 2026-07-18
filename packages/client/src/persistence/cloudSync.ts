@@ -45,18 +45,30 @@ export async function claimUsername(
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Sube el perfil (debounced 2 s para no spamear en rachas de guardado). */
+/**
+ * Sube el perfil (debounced 2 s). GUARDA ANTI-PISADO: el servidor escribe
+ * la progresión (level/xp/bpXp/stats) con autoridad, así que antes de subir
+ * se adopta la progresión de la nube si va por delante — el cliente nunca
+ * puede "retroceder" lo que otorgó el servidor.
+ */
 export function pushCloudProfile(userId: string, profile: PlayerProfile): void {
   const supa = getSupabase();
   if (!supa) return;
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    void supa
-      .from('profiles')
-      .upsert({ user_id: userId, data: profile, updated_at: new Date().toISOString() })
-      .then(({ error }) => {
-        if (error) console.warn('[cloud] no se pudo sincronizar el perfil:', error.message);
-      });
+    void (async () => {
+      const cloud = await fetchCloudRecord(userId);
+      if (cloud && cloud.profile.bpXp > profile.bpXp) {
+        profile.level = cloud.profile.level;
+        profile.xp = cloud.profile.xp;
+        profile.bpXp = cloud.profile.bpXp;
+        profile.stats = cloud.profile.stats;
+      }
+      const { error } = await supa
+        .from('profiles')
+        .upsert({ user_id: userId, data: profile, updated_at: new Date().toISOString() });
+      if (error) console.warn('[cloud] no se pudo sincronizar el perfil:', error.message);
+    })();
   }, 2000);
 }
 

@@ -59,10 +59,13 @@ export class PlayerEntity {
   kills = 0;
   deaths = 0;
   assists = 0;
+  headshots = 0;
   score = 0;
   ping = 0;
   level = 1;
   operatorId = 'op-cipher';
+  /** User id de Supabase VERIFICADO (null = invitado, progresión local). */
+  cloudUserId: string | null = null;
 
   /** Inputs pendientes de aplicar y último aplicado (para el ack). */
   pendingInputs: InputCommand[] = [];

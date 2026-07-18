@@ -138,8 +138,10 @@ export function ensureMissionPeriods(profile: PlayerProfile): void {
   }
 }
 
-/** Suma el resultado de una partida al progreso de las misiones activas. */
-function applyMissionResult(profile: PlayerProfile, result: MatchResult): void {
+/** Suma el resultado de una partida al progreso de las misiones activas.
+ *  Exportada: con sesión en nube el progreso XP lo escribe el SERVIDOR y
+ *  el cliente solo banca misiones. */
+export function applyMissionResult(profile: PlayerProfile, result: MatchResult): void {
   ensureMissionPeriods(profile);
   const active: MissionDef[] = [...dailyMissions(), ...weeklyMissions()];
   const gains: Record<string, number> = {

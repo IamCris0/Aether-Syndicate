@@ -21,6 +21,9 @@ export interface JoinRequest {
   level?: number;
   /** Operador cosmético equipado (validado contra el registro). */
   operatorId?: string;
+  /** Token de sesión de Supabase: el servidor lo VERIFICA y activa la
+   *  progresión autoritativa para ese jugador. Opcional (invitados). */
+  authToken?: string;
 }
 
 export interface JoinResponse {

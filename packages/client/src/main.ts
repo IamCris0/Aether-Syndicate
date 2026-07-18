@@ -5,7 +5,7 @@ import { Input } from './core/Input.js';
 import { GameClient } from './game/GameClient.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { loadSettings, saveSettings, type PlayerSettings } from './persistence/storage.js';
-import { bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
+import { applyMissionResult, bankMatchResult, loadProfile, saveProfile, type PlayerProfile } from './persistence/profile.js';
 import { guestAuth } from './services/auth.js';
 import { getSupabase } from './services/supabase.js';
 import { claimUsername, fetchCloudRecord, pushCloudProfile, resolveProfiles } from './persistence/cloudSync.js';
@@ -34,10 +34,13 @@ const joinExtra = (): JoinExtra => ({
   loadout: [profile.loadoutPrimary, 'pistol-nomad', 'knife-fang'],
   level: profile.level,
   operatorId: profile.equippedOperator,
+  authToken: cloudAccessToken ?? undefined,
 });
 
 /** Id de usuario Supabase cuando hay sesión (null = invitado local). */
 let cloudUserId: string | null = null;
+/** Token de sesión: viaja en el join para la progresión AUTORITATIVA. */
+let cloudAccessToken: string | null = null;
 
 const persistProfile = (): void => {
   void saveProfile(profile);
@@ -95,8 +98,12 @@ async function initCloudAuth(): Promise<void> {
 
   // Sesión ya activa (o recién vuelta del redirect de OAuth).
   const { data } = await supa.auth.getSession();
-  if (data.session) await onCloudSignIn(data.session.user.id, data.session.user);
+  if (data.session) {
+    cloudAccessToken = data.session.access_token;
+    await onCloudSignIn(data.session.user.id, data.session.user);
+  }
   supa.auth.onAuthStateChange((event, session) => {
+    if (session) cloudAccessToken = session.access_token; // incluye TOKEN_REFRESHED
     if (event === 'SIGNED_IN' && session && cloudUserId !== session.user.id) {
       void onCloudSignIn(session.user.id, session.user);
     }
@@ -238,8 +245,28 @@ async function startGame(join: () => Promise<Awaited<ReturnType<Connection['matc
     skinId: profile.equippedSkin,
   });
   game.onXpBanked = (result) => {
-    bankMatchResult(profile, result);
-    persistProfile();
+    if (cloudUserId) {
+      // Con sesión: la XP/stats las escribe el SERVIDOR con autoridad;
+      // aquí solo avanzan las misiones. Tras un momento, adoptamos los
+      // números autoritativos de la nube.
+      applyMissionResult(profile, result);
+      persistProfile();
+      const userId = cloudUserId;
+      setTimeout(() => {
+        void fetchCloudRecord(userId).then((record) => {
+          if (!record || cloudUserId !== userId) return;
+          profile.level = record.profile.level;
+          profile.xp = record.profile.xp;
+          profile.bpXp = record.profile.bpXp;
+          profile.stats = record.profile.stats;
+          void saveProfile(profile);
+          renderLobbyCard(profile, settings.name);
+        });
+      }, 4000);
+    } else {
+      bankMatchResult(profile, result);
+      persistProfile();
+    }
   };
   game.start();
   document.title = `AETHER SYNDICATE — ${res.roomName} [${res.roomCode}]`;
