@@ -385,6 +385,7 @@ export class GameClient {
 
       this.weaponView.onShotFired();
       this.audio.playShot(weapon.class, 0);
+      this.hud.punchCrosshair();
 
       // Trazadora + chispas PREDICHAS: el disparo se ve al instante aunque
       // el servidor esté lejos (el impacto real lo confirma el snapshot).
@@ -469,6 +470,8 @@ export class GameClient {
         this.prevReloading = snap.self.reloading;
         this.weaponView.setReloading(snap.self.reloading);
         if (snap.self.weaponId !== this.prevWeaponId) {
+          // Cambiar de arma cancela la recarga en curso: corta también su sonido.
+          this.audio.stopReload();
           if (this.prevWeaponId) this.audio.playSwitch();
           this.prevWeaponId = snap.self.weaponId;
         }
@@ -659,7 +662,8 @@ export class GameClient {
         this.hud.addKillfeed(
           killer?.name ?? '???',
           victim?.name ?? '???',
-          getWeapon(ev.weaponId).name + (ev.headshot ? ' ☠' : ''),
+          getWeapon(ev.weaponId).class,
+          ev.headshot,
           involvesMe,
         );
         if (ev.killerId === selfId && ev.victimId !== selfId) {

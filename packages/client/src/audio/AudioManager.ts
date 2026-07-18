@@ -182,11 +182,39 @@ export class AudioManager {
 
   // ------------------------------------------------------------ armas
 
+  private reloadSrc: AudioBufferSourceNode | null = null;
+  private reloadTimers: ReturnType<typeof setTimeout>[] = [];
+
   playReload(): void {
-    if (this.playSample('reload', 0.4)) return;
+    this.stopReload();
+    if (this.ctx && this.master) {
+      const buffer = this.buffers.get('reload');
+      if (buffer) {
+        const src = this.ctx.createBufferSource();
+        src.buffer = buffer;
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.4;
+        src.connect(gain).connect(this.master);
+        src.onended = () => { if (this.reloadSrc === src) this.reloadSrc = null; };
+        src.start();
+        this.reloadSrc = src;
+        return;
+      }
+    }
+    // Procedural (sin sample): la cadena de clics es cancelable por stopReload().
     this.blip(700, 0.05, 0.2);
-    setTimeout(() => this.blip(500, 0.05, 0.2), 350);
-    setTimeout(() => this.blip(900, 0.06, 0.25), 800);
+    this.reloadTimers.push(setTimeout(() => this.blip(500, 0.05, 0.2), 350));
+    this.reloadTimers.push(setTimeout(() => this.blip(900, 0.06, 0.25), 800));
+  }
+
+  /** Corta el sonido de recarga en curso (p. ej. al cambiar de arma a mitad). */
+  stopReload(): void {
+    for (const t of this.reloadTimers) clearTimeout(t);
+    this.reloadTimers = [];
+    if (this.reloadSrc) {
+      try { this.reloadSrc.stop(); } catch { /* ya detenido */ }
+      this.reloadSrc = null;
+    }
   }
 
   playSwitch(): void {

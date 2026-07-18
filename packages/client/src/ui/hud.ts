@@ -5,6 +5,7 @@ import {
   type PlayerSnapshot,
   type SelfState,
   type Snapshot,
+  type WeaponClass,
 } from '@aether/shared';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -149,10 +150,19 @@ export class Hud {
     this.fps.textContent = `${fps} FPS`;
   }
 
-  addKillfeed(killer: string, victim: string, weapon: string, involvesMe: boolean): void {
+  addKillfeed(
+    killer: string,
+    victim: string,
+    weaponClass: WeaponClass,
+    headshot: boolean,
+    involvesMe: boolean,
+  ): void {
     const entry = document.createElement('div');
     entry.className = `entry${involvesMe ? ' me' : ''}`;
-    entry.textContent = `${killer}  [${weapon}]  ${victim}`;
+    entry.innerHTML =
+      `<span class="kf-name">${escapeHtml(killer)}</span>` +
+      `<span class="kf-weapon">${weaponGlyph(weaponClass)}${headshot ? '<b class="kf-hs">☠</b>' : ''}</span>` +
+      `<span class="kf-name">${escapeHtml(victim)}</span>`;
     this.killfeed.prepend(entry);
     while (this.killfeed.children.length > 6) this.killfeed.lastChild?.remove();
     setTimeout(() => entry.remove(), 6000);
@@ -177,6 +187,13 @@ export class Hud {
     if (rounded === this.lastGap) return;
     this.lastGap = rounded;
     this.crosshairEl.style.setProperty('--ch-gap', `${rounded}px`);
+  }
+
+  /** Golpe visual del crosshair en cada disparo (retroalimentación táctil). */
+  punchCrosshair(): void {
+    this.crosshairEl.classList.remove('kick');
+    void this.crosshairEl.offsetWidth; // reinicia la animación
+    this.crosshairEl.classList.add('kick');
   }
 
   private crosshairEl = $('crosshair');
@@ -307,4 +324,19 @@ export class Hud {
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** Silueta SVG por clase de arma para el killfeed (color heredado por currentColor). */
+function weaponGlyph(cls: WeaponClass): string {
+  const paths: Record<WeaponClass, string> = {
+    ar: '<path d="M1 4h18v2h-6l-1 4h-2l1-4H1z"/>',
+    smg: '<path d="M4 4h13v2h-5l-1 3H9l1-3H4z"/>',
+    shotgun: '<path d="M2 4h20v1.5H2z"/><path d="M2 6.5h20V8H2z"/>',
+    sniper: '<path d="M1 5.2h22v1.4H1z"/><path d="M9 3h5v1.4H9z"/>',
+    lmg: '<path d="M3 4h16v2H3z"/><path d="M8 6h6v4H8z"/>',
+    pistol: '<path d="M6 4h9v2h-4v4H9V6H6z"/>',
+    melee: '<path d="M2 8.5 15 4l4 1.2L4 9.6z"/><path d="M2 8.5 5 9l-.5 1.6L1 10z"/>',
+    grenade: '<circle cx="12" cy="7" r="3.6"/><path d="M10.4 2.4h3.2v2.2h-3.2z"/>',
+  };
+  return `<svg class="kf-icon" viewBox="0 0 24 12" fill="currentColor" aria-hidden="true">${paths[cls] ?? paths.ar}</svg>`;
 }

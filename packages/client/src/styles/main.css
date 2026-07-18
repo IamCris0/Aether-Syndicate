@@ -421,6 +421,9 @@ input:focus, select:focus { border-color: var(--accent); }
 .crosshair i:nth-child(3) { width: 7px; height: 2px; transform: translate(calc(-7px - var(--ch-gap)), -1px); }
 .crosshair i:nth-child(4) { width: 7px; height: 2px; transform: translate(var(--ch-gap), -1px); }
 .crosshair b { position: absolute; left: -1px; top: -1px; width: 2px; height: 2px; background: var(--crosshair-color, var(--accent)); }
+/* Golpe por disparo: expande y recupera (retroalimentación de gatillo). */
+.crosshair.kick { animation: ch-kick 0.13s ease-out; }
+@keyframes ch-kick { 0% { scale: 1.55; } 100% { scale: 1; } }
 
 .hitmarker {
   position: absolute; top: 50%; left: 50%;
@@ -506,11 +509,17 @@ input:focus, select:focus { border-color: var(--accent); }
   font-size: 0.8rem;
 }
 .killfeed .entry {
+  display: flex; align-items: center; gap: 7px;
   background: rgba(4, 10, 20, 0.75);
   padding: 4px 10px; border-radius: 4px;
   border-right: 2px solid var(--accent);
 }
 .killfeed .entry.me { border-right-color: var(--warn); }
+.kf-name { color: var(--text); }
+.kf-weapon { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
+.killfeed .entry.me .kf-weapon { color: var(--warn); }
+.kf-icon { width: 22px; height: 11px; display: block; }
+.kf-hs { color: var(--danger); font-size: 0.92em; line-height: 1; }
 
 .hud-bottom-left { position: absolute; left: 26px; bottom: 26px; width: 230px; display: flex; flex-direction: column; gap: 6px; }
 .bar-wrap { height: 9px; background: rgba(4, 10, 20, 0.8); border-radius: 4px; overflow: hidden; border: 1px solid rgba(127,146,173,0.25); }
